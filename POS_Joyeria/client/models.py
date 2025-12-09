@@ -1,3 +1,3 @@
 from django.db import models
 
-# Create your models here.
+#Reoresenta clientes, pueden ser frecuentes, de mayioreo, registrado para facturacion, o con datos opcionales
