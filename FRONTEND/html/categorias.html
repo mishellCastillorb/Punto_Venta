@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Categorías</title>
+    <link href="../dist/output.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+<div class="max-w-4xl mx-auto py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Categorías</h1>
+        <button
+            onclick="abrirModalCategoria()"
+            class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
+            + Nueva categoría
+        </button>
+    </div>
+
+    <div class="bg-white shadow rounded overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-gray-200 text-sm">
+                <tr>
+                    <th class="p-2">ID</th>
+                    <th class="p-2">Nombre</th>
+                    <th class="p-2">Opciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-categorias" class="text-sm">
+                <!-- JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL CATEGORÍA -->
+<div id="modal-categoria" class="hidden fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+    <div class="bg-white p-6 rounded shadow-lg w-full max-w-md">
+        <h2 id="modal-categoria-titulo" class="text-xl font-bold mb-4">Nueva categoría</h2>
+
+        <input id="c-id" type="hidden">
+
+        <label class="block mb-2 text-sm font-medium">Nombre</label>
+        <input
+            id="c-nombre"
+            type="text"
+            class="border p-2 rounded w-full mb-3"
+            placeholder="Ej. Anillos">
+
+        <p id="categoria-error" class="text-red-600 text-sm mb-3 h-5"></p>
+
+        <div class="flex justify-end space-x-2">
+            <button
+                onclick="cerrarModalCategoria()"
+                class="px-4 py-2 border rounded">
+                Cancelar
+            </button>
+            <button
+                onclick="guardarCategoria()"
+                class="px-4 py-2 bg-amber-700 text-white rounded">
+                Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/categorias.js"></script>
+
+</body>
+</html>
