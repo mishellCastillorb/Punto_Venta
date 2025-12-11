@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cargarProductos();
 });
 
-// ---------- LISTADO ----------
+// LISTADO
 
 async function cargarProductos() {
     try {
@@ -70,7 +70,7 @@ async function cargarProductos() {
     }
 }
 
-// ---------- MODAL ----------
+//  MODAL
 
 function abrirModalProducto() {
     document.getElementById("modal-titulo").textContent = "Nuevo producto";
@@ -123,7 +123,7 @@ function cerrarModalProducto() {
     document.getElementById("modal-producto").classList.add("hidden");
 }
 
-// ---------- VALIDACIÓN FRONT ----------
+//  VALIDACIÓN FRONT
 
 function validarFormularioProducto() {
     const errores = [];
@@ -186,7 +186,7 @@ function validarFormularioProducto() {
     return true;
 }
 
-// ---------- GUARDAR (CREAR / EDITAR) ----------
+//  GUARDAR (CREAR / EDITAR)
 
 async function guardarProducto() {
     if (!validarFormularioProducto()) return;
@@ -264,7 +264,7 @@ async function guardarProducto() {
     }
 }
 
-// ---------- ELIMINAR ----------
+//  ELIMINAR
 
 async function eliminarProducto(id) {
     if (!confirm("¿Seguro que deseas eliminar este producto?")) return;
@@ -278,7 +278,7 @@ async function eliminarProducto(id) {
     }
 }
 
-// ---------- CATÁLOGOS ----------
+//  CATALOGOS
 
 async function cargarCatalogos() {
     try {

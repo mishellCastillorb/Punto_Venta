@@ -90,3 +90,32 @@ async function apiDelete(url) {
 
     return body;
 }
+
+async function apiPost(url, data) {
+    const res = await fetch(API + url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok) throw { status: res.status, data: body };
+
+    return body;
+}
+
+async function apiPut(url, data) {
+    const res = await fetch(API + url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok) throw { status: res.status, data: body };
+
+    return body;
+}
+
