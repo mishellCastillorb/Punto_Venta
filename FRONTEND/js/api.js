@@ -1,6 +1,3 @@
-// FRONTEND/js/api.js
-// Helpers mínimos para consumir la API de Django
-
 const API = "http://127.0.0.1:8000";
 
 async function apiGet(url) {
@@ -23,10 +20,58 @@ async function apiGet(url) {
     return body;
 }
 
+async function apiPost(url, data) {
+    const res = await fetch(API + url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+
+    let body = null;
+    try {
+        body = await res.json();
+    } catch (_) {
+        body = null;
+    }
+
+    if (!res.ok) {
+        const err = new Error("API POST error");
+        err.status = res.status;
+        err.data = body;
+        throw err;
+    }
+
+    return body;
+}
+
+async function apiPut(url, data) {
+    const res = await fetch(API + url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+
+    let body = null;
+    try {
+        body = await res.json();
+    } catch (_) {
+        body = null;
+    }
+
+    if (!res.ok) {
+        const err = new Error("API PUT error");
+        err.status = res.status;
+        err.data = body;
+        throw err;
+    }
+
+    return body;
+}
+
 async function apiPostMultipart(url, formData) {
     const res = await fetch(API + url, {
         method: "POST",
-        body: formData
+        body: formData,
     });
 
     let body = null;
@@ -49,7 +94,7 @@ async function apiPostMultipart(url, formData) {
 async function apiPutMultipart(url, formData) {
     const res = await fetch(API + url, {
         method: "PUT",
-        body: formData
+        body: formData,
     });
 
     let body = null;
@@ -71,7 +116,7 @@ async function apiPutMultipart(url, formData) {
 
 async function apiDelete(url) {
     const res = await fetch(API + url, {
-        method: "DELETE"
+        method: "DELETE",
     });
 
     let body = null;
@@ -90,32 +135,3 @@ async function apiDelete(url) {
 
     return body;
 }
-
-async function apiPost(url, data) {
-    const res = await fetch(API + url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
-
-    const body = await res.json().catch(() => null);
-
-    if (!res.ok) throw { status: res.status, data: body };
-
-    return body;
-}
-
-async function apiPut(url, data) {
-    const res = await fetch(API + url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    });
-
-    const body = await res.json().catch(() => null);
-
-    if (!res.ok) throw { status: res.status, data: body };
-
-    return body;
-}
-
