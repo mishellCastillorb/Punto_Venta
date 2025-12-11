@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Proveedor</title>
+</head>
+<body>
+    <h1>Registrar Proveedor</h1>
+
+    <form action="http://localhost:8000/api/suppliers/" method="POST">
+        <!-- Ajusta la URL del action al endpoint real de tu API -->
+
+        <label>Nombre:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>Código:</label><br>
+        <input type="text" name="code" required><br><br>
+
+        <label>Teléfono:</label><br>
+        <input type="text" name="phone" required><br><br>
+
+        <label>Email:</label><br>
+        <input type="email" name="email" required><br><br>
+
+        <label>Notas:</label><br>
+        <textarea name="notes" rows="4" cols="40"></textarea><br><br>
+
+        <button type="submit">Guardar proveedor</button>
+    </form>
+</body>
+</html>

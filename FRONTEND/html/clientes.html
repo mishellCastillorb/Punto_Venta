@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Cliente</title>
+</head>
+<body>
+    <h1>Registrar Cliente</h1>
+
+    <form action="http://localhost:8000/api/clients/" method="POST">
+        <!-- Ajusta la URL del action al endpoint real de tu API -->
+
+        <label>Nombre:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>Apellido paterno:</label><br>
+        <input type="text" name="apellido_paterno"><br><br>
+
+        <label>Apellido materno:</label><br>
+        <input type="text" name="apellido_materno"><br><br>
+
+        <label>Teléfono:</label><br>
+        <input type="text" name="phone"><br><br>
+
+        <label>Email:</label><br>
+        <input type="email" name="email"><br><br>
+
+        <label>Dirección:</label><br>
+        <input type="text" name="address"><br><br>
+
+        <label>RFC:</label><br>
+        <input type="text" name="rfc"><br><br>
+
+        <label>¿Es mayorista?</label><br>
+        <input type="checkbox" name="es_mayorista" value="true"><br><br>
+
+        <label>Activo:</label><br>
+        <input type="checkbox" name="is_active" value="true" checked><br><br>
+
+        <button type="submit">Guardar cliente</button>
+    </form>
+</body>
+</html>

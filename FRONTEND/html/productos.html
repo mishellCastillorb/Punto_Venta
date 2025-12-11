@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Producto</title>
+</head>
+<body>
+    <h1>Registrar Producto</h1>
+
+    <form action="http://localhost:8000/api/products/" method="POST" enctype="multipart/form-data">
+        <!-- Ajusta la URL del action al endpoint real de tu API -->
+
+        <label>Nombre:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>ID de categoría:</label><br>
+        <input type="number" name="category" required><br>
+        <small>Escribe el ID de una categoría existente.</small><br><br>
+
+        <label>Precio de compra:</label><br>
+        <input type="number" step="0.01" name="purchase_price" required><br><br>
+
+        <label>Precio de venta:</label><br>
+        <input type="number" step="0.01" name="sale_price" required><br><br>
+
+        <label>Peso (gramos):</label><br>
+        <input type="number" step="0.01" name="weight" required><br><br>
+
+        <label>ID de proveedor:</label><br>
+        <input type="number" name="supplier" required><br>
+        <small>Escribe el ID de un proveedor existente.</small><br><br>
+
+        <label>ID de material:</label><br>
+        <input type="number" name="material"><br>
+        <small>Opcional: ID de un material existente.</small><br><br>
+
+        <label>Stock:</label><br>
+        <input type="number" name="stock" min="0" required><br><br>
+
+        <label>Activo:</label><br>
+        <input type="checkbox" name="is_active" value="true" checked><br><br>
+
+        <label>Imagen:</label><br>
+        <input type="file" name="image" accept="image/*"><br><br>
+
+        <button type="submit">Guardar producto</button>
+    </form>
+</body>
+</html>
