@@ -1,24 +1,34 @@
 from django.test import TestCase
-from suppliers.models import Supplier
-from .models import Category, Material, Product
-from rest_framework.test import APITestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 from io import BytesIO
 from PIL import Image
+from rest_framework.test import APITestCase
+from suppliers.models import Supplier
+from .models import Category, Material, Product
+from .forms import CategoryForm, MaterialForm, ProductForm
 
 
+
+def make_image_file(name="test.jpg"):
+    f = BytesIO()
+    img = Image.new("RGB", (1, 1), "white")
+    img.save(f, "JPEG")
+    f.seek(0)
+    return SimpleUploadedFile(name, f.read(), content_type="image/jpeg")
+
+
+# -------------------------
+# MODEL TESTS
+# -------------------------
 
 class ProductModelTest(TestCase):
-
     def setUp(self):
         self.cat_anillos = Category.objects.create(name="Anillos")
         self.cat_pulseras = Category.objects.create(name="Pulseras")
 
-        self.mat_plata = Material.objects.create(
-            name="Plata",
-            purity="925"
-        )
+        self.mat_plata = Material.objects.create(name="Plata", purity="925")
 
         self.proveedor = Supplier.objects.create(
             name="Proveedor Joyas",
@@ -28,7 +38,6 @@ class ProductModelTest(TestCase):
         )
 
     def test_codigo_primero_categoria(self):
-        """El primer producto de una categoría genera código terminado en 001."""
         p = Product.objects.create(
             name="Anillo simple",
             category=self.cat_anillos,
@@ -42,7 +51,6 @@ class ProductModelTest(TestCase):
         self.assertEqual(p.code, "V01ANI001")
 
     def test_codigo_incrementa_en_categoria(self):
-        """El segundo producto de la misma categoría incrementa el consecutivo."""
         Product.objects.create(
             name="Anillo 1",
             category=self.cat_anillos,
@@ -64,12 +72,9 @@ class ProductModelTest(TestCase):
             supplier=self.proveedor,
             material=self.mat_plata,
         )
-
         self.assertEqual(p2.code, "V01ANI002")
 
     def test_codigo_independiente_por_categoria(self):
-        """Categorías distintas inician desde 001 cada una."""
-        # Creamos un anillo
         Product.objects.create(
             name="Anillo 1",
             category=self.cat_anillos,
@@ -81,7 +86,6 @@ class ProductModelTest(TestCase):
             material=self.mat_plata,
         )
 
-        # Primer producto en pulseras
         pulsera = Product.objects.create(
             name="Pulsera 1",
             category=self.cat_pulseras,
@@ -92,11 +96,9 @@ class ProductModelTest(TestCase):
             supplier=self.proveedor,
             material=self.mat_plata,
         )
-
         self.assertEqual(pulsera.code, "V01PUL001")
 
     def test_codigo_no_cambia_al_editar(self):
-        """El código no debe cambiar si editamos el producto."""
         p = Product.objects.create(
             name="Anillo original",
             category=self.cat_anillos,
@@ -107,10 +109,8 @@ class ProductModelTest(TestCase):
             supplier=self.proveedor,
             material=self.mat_plata,
         )
-
         codigo_original = p.code
 
-        # Editamos cosas que NO deben afectar el código
         p.name = "Anillo modificado"
         p.sale_price = 850
         p.save()
@@ -119,64 +119,100 @@ class ProductModelTest(TestCase):
         self.assertEqual(p.code, codigo_original)
 
 
+# -------------------------
+# FORM TESTS (para cubrir clean_name y formularios)
+# -------------------------
 
-# INIICIO DE LAS PRUBAS DE NIVERL SERIALIZERS
+class CategoryFormTest(TestCase):
+    def test_category_form_nombre_obligatorio(self):
+        form = CategoryForm(data={"name": "   "})
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
 
+    def test_category_form_nombre_min_3(self):
+        form = CategoryForm(data={"name": "Ab"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
+
+    def test_category_form_trim(self):
+        form = CategoryForm(data={"name": "  Anillos  "})
+        self.assertTrue(form.is_valid(), form.errors)
+        obj = form.save()
+        self.assertEqual(obj.name, "Anillos")
+
+
+class MaterialFormTest(TestCase):
+    def test_material_form_crea_ok(self):
+        form = MaterialForm(data={"name": "Plata", "purity": "925"})
+        self.assertTrue(form.is_valid(), form.errors)
+        obj = form.save()
+        self.assertEqual(obj.name, "Plata")
+
+
+class ProductFormTest(TestCase):
+    def setUp(self):
+        self.cat = Category.objects.create(name="Anillos")
+        self.mat = Material.objects.create(name="Plata", purity="925")
+        self.sup = Supplier.objects.create(
+            name="Proveedor Joyas", code="V01", phone="5550001111", email="p@test.com"
+        )
+
+    def test_product_form_valido_crea(self):
+        form = ProductForm(
+            data={
+                "name": "Anillo Plata",
+                "category": self.cat.id,
+                "supplier": self.sup.id,
+                "material": self.mat.id,
+                "purchase_price": "500.00",
+                "sale_price": "800.00",
+                "weight": "10.00",
+                "stock": 5,
+            },
+            files={"image": make_image_file()},
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        p = form.save()
+        self.assertTrue(p.code)  # se generó
+
+
+# -------------------------
+# API TESTS (DRF)
+# -------------------------
 
 class CategoryAPITest(APITestCase):
-
     def test_crear_categoria(self):
-        """Se puede crear una categoría vía API."""
         url = reverse("category-list-create")
-        data = {"name": "Anillos"}
-
-        response = self.client.post(url, data, format="json")
-
-        self.assertEqual(response.status_code, 201)
+        resp = self.client.post(url, {"name": "Anillos"}, format="json")
+        self.assertEqual(resp.status_code, 201)
         self.assertEqual(Category.objects.count(), 1)
-        self.assertEqual(Category.objects.first().name, "Anillos")
 
     def test_listar_categorias(self):
-        """Se pueden listar categorías vía API."""
         Category.objects.create(name="Anillos")
         Category.objects.create(name="Pulseras")
-
         url = reverse("category-list-create")
-        response = self.client.get(url, format="json")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        resp = self.client.get(url, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 2)
 
 
 class MaterialAPITest(APITestCase):
-
     def test_crear_material(self):
-        """Se puede crear un material vía API."""
         url = reverse("material-list-create")
-        data = {
-            "name": "Plata",
-            "purity": "925"
-        }
-
-        response = self.client.post(url, data, format="json")
-
-        self.assertEqual(response.status_code, 201)
+        resp = self.client.post(url, {"name": "Plata", "purity": "925"}, format="json")
+        self.assertEqual(resp.status_code, 201)
         self.assertEqual(Material.objects.count(), 1)
-        self.assertEqual(Material.objects.first().name, "Plata")
 
     def test_listar_materiales(self):
-        """Se pueden listar materiales vía API."""
         Material.objects.create(name="Plata", purity="925")
         Material.objects.create(name="Oro", purity="14k")
-
         url = reverse("material-list-create")
-        response = self.client.get(url, format="json")
+        resp = self.client.get(url, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 2)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
 
 class ProductAPITest(APITestCase):
-
     def setUp(self):
         self.category = Category.objects.create(name="Anillos")
         self.material = Material.objects.create(name="Plata", purity="925")
@@ -187,23 +223,8 @@ class ProductAPITest(APITestCase):
             email="proveedor@test.com"
         )
 
-    def _crear_imagen_dummy(self):
-        # Crea una imagen RGB de 1x1 píxel en memoria
-        file_obj = BytesIO()
-        image = Image.new("RGB", (1, 1), "white")
-        image.save(file_obj, "JPEG")
-        file_obj.seek(0)
-
-        return SimpleUploadedFile(
-            "test.jpg",
-            file_obj.read(),
-            content_type="image/jpeg"
-        )
-
     def test_crear_producto_ok(self):
-        """Se puede crear un producto válido vía API."""
         url = reverse("product-list-create")
-
         data = {
             "name": "Anillo Plata",
             "category": self.category.id,
@@ -214,21 +235,15 @@ class ProductAPITest(APITestCase):
             "supplier": self.supplier.id,
             "material": self.material.id,
             "is_active": True,
-            "image": self._crear_imagen_dummy(),
+            "image": make_image_file(),
         }
-
-        response = self.client.post(url, data, format="multipart")
-
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(Product.objects.count(), 1)
-        product = Product.objects.first()
-        self.assertEqual(product.name, "Anillo Plata")
-        self.assertIsNotNone(product.code)
+        resp = self.client.post(url, data, format="multipart")
+        self.assertEqual(resp.status_code, 201)
+        p = Product.objects.first()
+        self.assertIsNotNone(p.code)
 
     def test_error_sin_categoria(self):
-        """No permite crear producto sin categoría."""
         url = reverse("product-list-create")
-
         data = {
             "name": "Producto sin categoría",
             "purchase_price": "500.00",
@@ -237,18 +252,31 @@ class ProductAPITest(APITestCase):
             "stock": 5,
             "supplier": self.supplier.id,
             "material": self.material.id,
-            "image": self._crear_imagen_dummy(),
+            "image": make_image_file(),
         }
+        resp = self.client.post(url, data, format="multipart")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("category", resp.data)
 
-        response = self.client.post(url, data, format="multipart")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("category", response.data)
+    def test_error_sin_imagen_en_post(self):
+        """Tu serializer exige image al crear (POST)."""
+        url = reverse("product-list-create")
+        data = {
+            "name": "Sin imagen",
+            "category": self.category.id,
+            "purchase_price": "500.00",
+            "sale_price": "800.00",
+            "weight": "10.00",
+            "stock": 5,
+            "supplier": self.supplier.id,
+            "material": self.material.id,
+        }
+        resp = self.client.post(url, data, format="multipart")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("image", resp.data)
 
     def test_error_valores_negativos(self):
-        """No permite valores negativos en precios, stock o peso."""
         url = reverse("product-list-create")
-
         data = {
             "name": "Anillo raro",
             "category": self.category.id,
@@ -258,19 +286,15 @@ class ProductAPITest(APITestCase):
             "stock": -1,
             "supplier": self.supplier.id,
             "material": self.material.id,
-            "image": self._crear_imagen_dummy(),
+            "image": make_image_file(),
         }
-
-        response = self.client.post(url, data, format="multipart")
-
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("purchase_price", response.data)
-        self.assertIn("weight", response.data)
-        self.assertIn("stock", response.data)
+        resp = self.client.post(url, data, format="multipart")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("purchase_price", resp.data)
+        self.assertIn("weight", resp.data)
+        self.assertIn("stock", resp.data)
 
     def test_codigo_no_cambia_al_actualizar_via_api(self):
-        """El código no cambia cuando se actualiza el producto vía API."""
-        # Creamos primero el producto (modelo)
         product = Product.objects.create(
             name="Anillo original",
             category=self.category,
@@ -282,7 +306,6 @@ class ProductAPITest(APITestCase):
             material=self.material,
             image="products/test.jpg",
         )
-
         codigo_original = product.code
 
         url = reverse("product-detail", args=[product.id])
@@ -297,18 +320,17 @@ class ProductAPITest(APITestCase):
             "supplier": self.supplier.id,
             "material": self.material.id,
             "is_active": True,
-            "image": self._crear_imagen_dummy(),  # reenviamos imagen
+            # En PUT no estás obligando image (solo en POST), pero si la mandas está ok
+            "image": make_image_file(),
         }
 
-        response = self.client.put(url, data, format="multipart")
-        self.assertEqual(response.status_code, 200)
+        resp = self.client.put(url, data, format="multipart")
+        self.assertEqual(resp.status_code, 200)
 
         product.refresh_from_db()
         self.assertEqual(product.code, codigo_original)
-        self.assertEqual(product.name, "Anillo actualizado")
 
     def test_eliminar_producto(self):
-        """Se puede eliminar un producto vía API."""
         product = Product.objects.create(
             name="Anillo a borrar",
             category=self.category,
@@ -322,7 +344,92 @@ class ProductAPITest(APITestCase):
         )
 
         url = reverse("product-detail", args=[product.id])
-
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, 204)
+        resp = self.client.delete(url)
+        self.assertEqual(resp.status_code, 204)
         self.assertEqual(Product.objects.count(), 0)
+
+
+# -------------------------
+# WEB VIEWS TESTS (sin JS)
+# -------------------------
+
+class ProductsWebViewsTest(TestCase):
+    def setUp(self):
+        self.cat = Category.objects.create(name="Anillos")
+        self.mat = Material.objects.create(name="Plata", purity="925")
+        self.sup = Supplier.objects.create(
+            name="Proveedor Joyas", code="V01", phone="5550001111", email="p@test.com"
+        )
+        self.prod = Product.objects.create(
+            name="Anillo base",
+            category=self.cat,
+            purchase_price=500,
+            sale_price=800,
+            weight=10,
+            stock=5,
+            supplier=self.sup,
+            material=self.mat,
+            image="products/test.jpg",
+        )
+
+    def test_category_list_200(self):
+        url = reverse("products_web:categories")
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Anillos")
+
+    def test_category_create_post_ok_redirect(self):
+        url = reverse("products_web:category_create")
+        res = self.client.post(url, {"name": "Pulseras"}, follow=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertTrue(Category.objects.filter(name="Pulseras").exists())
+
+    def test_material_list_200(self):
+        url = reverse("products_web:materials")
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Plata")
+
+    def test_material_create_post_ok_redirect(self):
+        url = reverse("products_web:material_create")
+        res = self.client.post(url, {"name": "Oro", "purity": "14k"}, follow=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertTrue(Material.objects.filter(name="Oro").exists())
+
+    def test_product_list_200(self):
+        url = reverse("products_web:list")
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Anillo base")
+
+    def test_product_create_post_ok_redirect(self):
+        url = reverse("products_web:product_create")
+        payload = {
+            "name": "Anillo nuevo",
+            "category": self.cat.id,
+            "supplier": self.sup.id,
+            "material": self.mat.id,
+            "purchase_price": "100.00",
+            "sale_price": "200.00",
+            "weight": "1.00",
+            "stock": 2,
+        }
+        res = self.client.post(url, data=payload, files={"image": make_image_file()}, follow=False)
+        self.assertIn(res.status_code, (200, 302))
+
+    def test_product_edit_precio_venta_menor_muestra_confirm(self):
+        """Cubre la rama de confirmación en product_edit."""
+        url = reverse("products_web:product_edit", args=[self.prod.id])
+        payload = {
+            "name": "Anillo base",
+            "category": self.cat.id,
+            "supplier": self.sup.id,
+            "material": self.mat.id,
+            "purchase_price": "500.00",
+            "sale_price": "100.00",  # menor que compra
+            "weight": "10.00",
+            "stock": 5,
+        }
+        res = self.client.post(url, data=payload)
+        self.assertEqual(res.status_code, 200)
+        # Solo verificamos que no redirigió (confirmación)

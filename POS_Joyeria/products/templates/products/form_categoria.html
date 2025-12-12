@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if modo == "editar" %}Editar{% else %}Nueva{% endif %} categoría</title>
+    <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<main class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white shadow rounded-xl p-6">
+
+        <h2 class="text-xl font-bold mb-4">
+            {% if modo == "editar" %}Editar categoría{% else %}Nueva categoría{% endif %}
+        </h2>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block mb-1 text-sm font-medium">Nombre</label>
+                {{ form.name }}
+                {% for e in form.name.errors %}
+                    <p class="text-red-600 text-sm">{{ e }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <a href="{% url 'products_web:categories' %}"
+                   class="px-4 py-2 border rounded">
+                    Cancelar
+                </a>
+                <button class="px-4 py-2 bg-amber-700 text-white rounded">
+                    Guardar
+                </button>
+            </div>
+        </form>
+
+    </div>
+</main>
+<script src="{% static 'js/categorias.js' %}"></script>
+
+</body>
+</html>

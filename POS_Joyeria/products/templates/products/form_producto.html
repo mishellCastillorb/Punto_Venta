@@ -9,13 +9,10 @@
 
 <body class="bg-gray-100">
 
-<main class="min-h-screen flex items-center justify-center p-6">
+<div class="min-h-screen flex items-center justify-center">
+  <div class="bg-white w-full max-w-xl rounded-lg shadow p-6">
 
-  <div class="bg-white w-full max-w-2xl rounded-lg shadow p-6">
-
-    <h2 class="text-2xl font-bold mb-6">
-      Nuevo producto
-    </h2>
+    <h2 class="text-2xl font-bold mb-6">Nuevo producto</h2>
 
     <form method="post" enctype="multipart/form-data" class="space-y-4">
       {% csrf_token %}
@@ -26,17 +23,16 @@
         {{ form.name }}
       </div>
 
-      <!-- Categoría / Proveedor -->
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Categoría</label>
-          {{ form.category }}
-        </div>
+      <!-- Categoría -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Categoría</label>
+        {{ form.category }}
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium mb-1">Proveedor</label>
-          {{ form.supplier }}
-        </div>
+      <!-- Proveedor -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Proveedor</label>
+        {{ form.supplier }}
       </div>
 
       <!-- Material -->
@@ -51,7 +47,6 @@
           <label class="block text-sm font-medium mb-1">Precio compra</label>
           {{ form.purchase_price }}
         </div>
-
         <div>
           <label class="block text-sm font-medium mb-1">Precio venta</label>
           {{ form.sale_price }}
@@ -64,7 +59,6 @@
           <label class="block text-sm font-medium mb-1">Stock</label>
           {{ form.stock }}
         </div>
-
         <div>
           <label class="block text-sm font-medium mb-1">Peso (g)</label>
           {{ form.weight }}
@@ -75,36 +69,24 @@
       <div>
         <label class="block text-sm font-medium mb-1">Imagen</label>
         {{ form.image }}
-        <p class="text-xs text-gray-500 mt-1">
-          Formato recomendado: JPG o PNG
-        </p>
       </div>
-
-      <!-- Errores -->
-      {% if form.errors %}
-      <div class="bg-red-100 text-red-700 p-3 rounded text-sm">
-        {{ form.errors }}
-      </div>
-      {% endif %}
 
       <!-- Botones -->
-      <div class="flex justify-end gap-3 pt-4">
+      <div class="flex justify-end gap-2 pt-4">
         <a href="{% url 'products_web:list' %}"
-           class="px-4 py-2 border rounded hover:bg-gray-50">
+           class="px-4 py-2 border rounded">
           Cancelar
         </a>
 
-        <button
-          class="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded">
+        <button class="px-4 py-2 bg-amber-700 text-white rounded hover:bg-amber-800">
           Guardar
         </button>
       </div>
-
     </form>
 
   </div>
-
-</main>
+</div>
+<script src="{% static 'js/productos.js' %}"></script>
 
 </body>
 </html>

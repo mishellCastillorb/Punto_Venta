@@ -69,14 +69,6 @@ class SupplierSerializer(serializers.ModelSerializer):
     def validate_code(self, value):
         return (value or "").strip()
 
-    def validate_phone(self, value):
-        v = (value or "").strip()
-        if not v.isdigit():
-            raise serializers.ValidationError("El teléfono solo debe contener dígitos.")
-        if len(v) < 7:
-            raise serializers.ValidationError("El teléfono debe tener al menos 7 dígitos.")
-        return v
-
     def validate_email(self, value):
         return (value or "").strip()
 

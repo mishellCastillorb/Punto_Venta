@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Clientes</title>
+  {% load static %}
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+<main class="min-h-screen w-full max-w-6xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Clientes</h1>
+    <a href="{% url 'clients_web:create' %}"
+       class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded whitespace-nowrap">
+      + Nuevo
+    </a>
+  </div>
+
+  <!-- CLIENTES ACTIVOS -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold mb-3">Clientes activos</h2>
+
+    <div class="bg-white shadow rounded overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2 text-left">Nombre</th>
+          <th class="p-2 text-left">Teléfono</th>
+          <th class="p-2 text-left">Correo</th>
+          <th class="p-2 text-left">Mayorista</th>
+          <th class="p-2 text-left">Acciones</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for c in activos %}
+        <tr class="border-t">
+          <td class="p-2">{{ c }}</td>
+          <td class="p-2">{{ c.phone|default:"-" }}</td>
+          <td class="p-2">{{ c.email|default:"-" }}</td>
+          <td class="p-2">
+            {% if c.es_mayorista %}
+            <span class="text-green-700 font-medium">Sí</span>
+            {% else %}
+            No
+            {% endif %}
+          </td>
+
+          <td class="p-2">
+            <div class="inline-flex items-center gap-2">
+              <a href="{% url 'clients_web:edit' c.id %}"
+                 class="px-3 py-1 text-sm bg-amber-700 text-white rounded whitespace-nowrap">
+                Editar
+              </a>
+
+              <form method="post"
+                    action="{% url 'clients_web:delete' c.id %}"
+                    onsubmit="return confirm('¿Seguro que deseas desactivar este cliente?');"
+                    class="m-0">
+                {% csrf_token %}
+                <button type="submit"
+                        class="px-3 py-1 text-sm bg-red-600 text-white rounded whitespace-nowrap">
+                  Eliminar
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="p-4 text-center text-gray-400">
+            No hay clientes activos.
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CLIENTES INACTIVOS -->
+  <section>
+    <h2 class="text-lg font-semibold mb-3">Clientes inactivos</h2>
+
+    <div class="bg-white shadow rounded overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2 text-left">Nombre</th>
+          <th class="p-2 text-left">Teléfono</th>
+          <th class="p-2 text-left">Correo</th>
+          <th class="p-2 text-left">Acciones</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {% for c in inactivos %}
+        <tr class="border-t">
+          <td class="p-2">{{ c }}</td>
+          <td class="p-2">{{ c.phone|default:"-" }}</td>
+          <td class="p-2">{{ c.email|default:"-" }}</td>
+          <td class="p-2">
+            <form method="post"
+                  action="{% url 'clients_web:activate' c.id %}"
+                  class="m-0 inline-block">
+              {% csrf_token %}
+              <button type="submit"
+                      class="px-3 py-1 bg-green-600 text-white rounded text-sm whitespace-nowrap">
+                Reactivar
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="p-4 text-center text-gray-400">
+            No hay clientes inactivos.
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </section>
+
+</main>
+{% load static %}
+<script src="{% static 'js/clientes.js' %}"></script>
+</body>
+</html>

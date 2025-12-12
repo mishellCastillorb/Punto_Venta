@@ -7,7 +7,7 @@ from .serializers import (
 )
 
 
-# --------- CATEGORY --------- #
+#CATEGORY
 
 class CategoryListCreateAPIView(generics.ListCreateAPIView):
     queryset = Category.objects.all().order_by("name")
@@ -19,7 +19,7 @@ class CategoryDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
 
 
-# --------- MATERIAL --------- #
+#MATERIAL
 
 class MaterialListCreateAPIView(generics.ListCreateAPIView):
     queryset = Material.objects.all().order_by("name")
@@ -31,7 +31,7 @@ class MaterialDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MaterialSerializer
 
 
-# --------- PRODUCT --------- #
+#PRODUCT
 
 class ProductListCreateAPIView(generics.ListCreateAPIView):
     queryset = Product.objects.all().order_by("name")

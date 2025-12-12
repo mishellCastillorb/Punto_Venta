@@ -1,13 +1,17 @@
 from django.test import TestCase
 from django.db.utils import IntegrityError
-from .models import Supplier
-from rest_framework.test import APITestCase
 from django.urls import reverse
-from suppliers.models import Supplier
+
+from rest_framework.test import APITestCase
+
+from .models import Supplier
+
+
+# -------------------- MODEL TESTS --------------------
 
 class SupplierModelTest(TestCase):
 
-    def test_crear_provedor(self):
+    def test_crear_proveedor(self):
         supplier = Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
@@ -20,7 +24,7 @@ class SupplierModelTest(TestCase):
         self.assertEqual(supplier.code, "V01")
         self.assertEqual(str(supplier), "Proveedor 1")
 
-    def test_codigo_unico(self):
+    def test_codigo_unico_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
@@ -36,7 +40,7 @@ class SupplierModelTest(TestCase):
                 email="proveedor2@test.com",
             )
 
-    def test_telfono_unico(self):
+    def test_telefono_unico_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
@@ -52,7 +56,7 @@ class SupplierModelTest(TestCase):
                 email="proveedor2@test.com",
             )
 
-    def test_correo_unico(self):
+    def test_correo_unico_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
@@ -67,13 +71,13 @@ class SupplierModelTest(TestCase):
                 phone="5553334444",
                 email="proveedor1@test.com",  # mismo correo
             )
+
 class SupplierAPITestCase(APITestCase):
 
     def setUp(self):
         self.url_list = reverse("supplier-list-create")
 
     def test_crear_proveedor_valido(self):
-        """Se puede crear un proveedor válido."""
         data = {
             "name": "Proveedor Uno",
             "code": "P01",
@@ -88,7 +92,6 @@ class SupplierAPITestCase(APITestCase):
         self.assertEqual(Supplier.objects.count(), 1)
 
     def test_rechaza_sin_code_phone_email(self):
-        """Rechaza crear proveedor sin code, phone o email."""
         data = {
             "name": "Proveedor Incompleto",
             "code": "",
@@ -102,8 +105,18 @@ class SupplierAPITestCase(APITestCase):
         self.assertIn("phone", response.data)
         self.assertIn("email", response.data)
 
+    def test_nombre_demasiado_corto(self):
+        data = {
+            "name": "Ab",
+            "code": "P10",
+            "phone": "5551234567",
+            "email": "p10@test.com",
+        }
+        response = self.client.post(self.url_list, data, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("name", response.data)
+
     def test_rechaza_code_duplicado(self):
-        """No permite duplicar el código del proveedor."""
         Supplier.objects.create(
             name="Proveedor Base",
             code="P01",
@@ -123,7 +136,6 @@ class SupplierAPITestCase(APITestCase):
         self.assertIn("code", response.data)
 
     def test_rechaza_phone_duplicado(self):
-        """No permite duplicar el teléfono del proveedor."""
         Supplier.objects.create(
             name="Proveedor Base",
             code="P01",
@@ -143,7 +155,6 @@ class SupplierAPITestCase(APITestCase):
         self.assertIn("phone", response.data)
 
     def test_rechaza_email_duplicado(self):
-        """No permite duplicar el correo del proveedor."""
         Supplier.objects.create(
             name="Proveedor Base",
             code="P01",
@@ -161,59 +172,19 @@ class SupplierAPITestCase(APITestCase):
         response = self.client.post(self.url_list, data, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
-    def test_nombre_demasiado_corto(self):
-        """Rechaza nombre con menos de 3 caracteres."""
-        data = {
-            "name": "Ab",
-            "code": "P10",
-            "phone": "5551234567",
-            "email": "p10@test.com",
-        }
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("name", response.data)
-
-    def test_telefono_no_numerico(self):
-        """Rechaza teléfono con caracteres no numéricos."""
-        data = {
-            "name": "Proveedor Tel",
-            "code": "P11",
-            "phone": "55-50A01111",   # letras y guión
-            "email": "p11@test.com",
-        }
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("phone", response.data)
-
-    def test_telefono_demasiado_corto(self):
-        """Rechaza teléfono con menos de 7 dígitos."""
-        data = {
-            "name": "Proveedor Tel C",
-            "code": "P12",
-            "phone": "123456",   # 6 dígitos
-            "email": "p12@test.com",
-        }
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("phone", response.data)
 
     def test_email_formato_invalido(self):
-        """Rechaza email con formato inválido."""
         data = {
             "name": "Proveedor Mail Malo",
             "code": "P13",
             "phone": "5551234567",
-            "email": "no-es-correo",   # sin @
+            "email": "no-es-correo",
         }
         response = self.client.post(self.url_list, data, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
 
-    def test_actualizar_mantiene_code_unico_correctamente(self):
-        """
-        Al actualizar un proveedor, puede mantener su mismo code/phone/email
-        sin disparar las validaciones de duplicado.
-        """
+    def test_actualizar_mantiene_unicos_correctamente(self):
         prov = Supplier.objects.create(
             name="Proveedor Base",
             code="P20",
@@ -234,6 +205,7 @@ class SupplierAPITestCase(APITestCase):
         prov.refresh_from_db()
         self.assertEqual(prov.name, "Proveedor Base Editado")
 
+
 class SupplierWebViewsTestCase(TestCase):
     def setUp(self):
         self.s1 = Supplier.objects.create(
@@ -251,11 +223,9 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/proveedores.html")
 
-        # Contexto
         self.assertIn("proveedores", res.context)
         self.assertTrue(any(p.id == self.s1.id for p in res.context["proveedores"]))
 
-        # Render básico
         self.assertContains(res, "Proveedores")
         self.assertContains(res, "Joyas Eva")
 
@@ -267,11 +237,9 @@ class SupplierWebViewsTestCase(TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/proveedores.html")
-
-        # Ajusta el texto al que tú pusiste en el template
         self.assertContains(res, "No hay proveedores", status_code=200)
 
-    # ---------- CREATE ----------
+    #  CREATE
     def test_create_get_renderiza_formulario(self):
         url = reverse("suppliers_web:create")
         res = self.client.get(url)
@@ -279,7 +247,7 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/formulario.html")
         self.assertIn("form", res.context)
-        self.assertEqual(res.context.get("modo"), "crear")  # si tú lo seteas así
+        self.assertEqual(res.context.get("modo"), "crear")
 
     def test_create_post_valido_crea_y_redirige(self):
         url = reverse("suppliers_web:create")
@@ -293,41 +261,47 @@ class SupplierWebViewsTestCase(TestCase):
 
         res = self.client.post(url, data=payload, follow=False)
 
-        # normalmente redirige al list
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res["Location"], reverse("suppliers_web:list"))
-
         self.assertTrue(Supplier.objects.filter(code="PN1").exists())
 
-    def test_create_post_invalido_se_queda_en_form_con_errores(self):
-        # Enviar vacío para disparar "required"
+    def test_create_post_phone_no_numerico_muestra_error(self):
         url = reverse("suppliers_web:create")
         payload = {
-            "name": "",
-            "code": "",
-            "phone": "",
-            "email": "",
+            "name": "Proveedor Tel Malo",
+            "code": "PT1",
+            "phone": "55-50A01111",  # inválido
+            "email": "pt1@gmail.com",
             "notes": "",
         }
-
         res = self.client.post(url, data=payload)
-
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/formulario.html")
-        self.assertIn("form", res.context)
+        self.assertTrue(res.context["form"].errors)
+        self.assertIn("phone", res.context["form"].errors)
 
-        form = res.context["form"]
-        self.assertTrue(form.errors)
-        # Si tus forms tienen mensajes en español, puedes checarlos:
-        # self.assertIn("El nombre es obligatorio", str(form.errors))
+    def test_create_post_phone_corto_muestra_error(self):
+        url = reverse("suppliers_web:create")
+        payload = {
+            "name": "Proveedor Tel Corto",
+            "code": "PT2",
+            "phone": "123456",  # 6 dígitos
+            "email": "pt2@gmail.com",
+            "notes": "",
+        }
+        res = self.client.post(url, data=payload)
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertTrue(res.context["form"].errors)
+        self.assertIn("phone", res.context["form"].errors)
 
     def test_create_post_duplicados_muestra_errores(self):
         url = reverse("suppliers_web:create")
         payload = {
             "name": "Otro",
-            "code": self.s1.code,   # duplicado
-            "phone": self.s1.phone, # duplicado
-            "email": self.s1.email, # duplicado
+            "code": self.s1.code,
+            "phone": self.s1.phone,
+            "email": self.s1.email,
             "notes": "",
         }
 
@@ -337,7 +311,7 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertTemplateUsed(res, "suppliers/formulario.html")
         self.assertTrue(res.context["form"].errors)
 
-    # ---------- EDIT ----------
+    # EDIT
     def test_edit_get_renderiza_form_con_datos(self):
         url = reverse("suppliers_web:edit", args=[self.s1.id])
         res = self.client.get(url)
@@ -347,16 +321,15 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertIn("form", res.context)
 
         form = res.context["form"]
-        # initial / instance data
         self.assertEqual(form.instance.id, self.s1.id)
 
     def test_edit_post_valido_actualiza_y_redirige(self):
         url = reverse("suppliers_web:edit", args=[self.s1.id])
         payload = {
             "name": "Joyas Eva Editado",
-            "code": "JE",  # mismo code permitido
-            "phone": "5567253827",  # mismo phone permitido
-            "email": "joyaseva@gmail.com",  # mismo email permitido
+            "code": "JE",
+            "phone": "5567253827",
+            "email": "joyaseva@gmail.com",
             "notes": "Actualizado",
         }
 
@@ -372,7 +345,7 @@ class SupplierWebViewsTestCase(TestCase):
     def test_edit_post_invalido_se_queda_en_form(self):
         url = reverse("suppliers_web:edit", args=[self.s1.id])
         payload = {
-            "name": "",  # inválido
+            "name": "",
             "code": "JE",
             "phone": "5567253827",
             "email": "joyaseva@gmail.com",
@@ -385,7 +358,7 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertTemplateUsed(res, "suppliers/formulario.html")
         self.assertTrue(res.context["form"].errors)
 
-    # ---------- DELETE ----------
+    #  DELETE
     def test_delete_post_elimina_y_redirige(self):
         url = reverse("suppliers_web:delete", args=[self.s1.id])
         res = self.client.post(url, follow=False)
@@ -393,4 +366,3 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res["Location"], reverse("suppliers_web:list"))
         self.assertFalse(Supplier.objects.filter(id=self.s1.id).exists())
-

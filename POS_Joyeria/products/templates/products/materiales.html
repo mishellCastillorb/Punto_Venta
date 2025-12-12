@@ -1,0 +1,61 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Materiales</title>
+    <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<div class="max-w-4xl mx-auto py-8">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Materiales</h1>
+
+        <a href="{% url 'products_web:material_create' %}"
+           class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
+            + Nuevo material
+        </a>
+    </div>
+
+    <div class="bg-white shadow rounded overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-gray-200 text-sm">
+                <tr>
+                    <th class="p-2">ID</th>
+                    <th class="p-2">Nombre</th>
+                    <th class="p-2">Pureza</th>
+                    <th class="p-2">Opciones</th>
+                </tr>
+            </thead>
+
+            <tbody class="text-sm">
+                {% for m in materiales %}
+                <tr class="border-b">
+                    <td class="p-2">{{ m.id }}</td>
+                    <td class="p-2">{{ m.name }}</td>
+                    <td class="p-2">{{ m.purity }}</td>
+                    <td class="p-2">
+                        <a href="{% url 'products_web:material_edit' m.id %}"
+                           class="text-blue-600 hover:underline">
+                            Editar
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-500">
+                        No hay materiales registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>

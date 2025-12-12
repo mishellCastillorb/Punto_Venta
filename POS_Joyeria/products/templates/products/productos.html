@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Productos</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<main class="max-w-6xl mx-auto py-8">
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Productos</h1>
+
+    <a href="{% url 'products_web:product_create' %}"
+       class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
+      + Nuevo producto
+    </a>
+  </div>
+
+  <div class="bg-white shadow rounded overflow-hidden">
+    <table class="w-full text-left">
+      <thead class="bg-gray-200 text-sm">
+        <tr>
+          <th class="p-2">Foto</th>
+          <th class="p-2">Código</th>
+          <th class="p-2">Nombre</th>
+          <th class="p-2">Categoría</th>
+          <th class="p-2">Material</th>
+          <th class="p-2">Precio</th>
+          <th class="p-2">Stock</th>
+          <th class="p-2">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="text-sm">
+        {% for p in productos %}
+        <tr class="border-b">
+
+          <!-- FOTO -->
+          <td class="p-2">
+            {% if p.image %}
+              <img src="{{ p.image.url }}"
+                   class="w-12 h-12 object-cover rounded border">
+            {% else %}
+              <span class="text-gray-400 text-xs">—</span>
+            {% endif %}
+          </td>
+
+          <td class="p-2">{{ p.code }}</td>
+          <td class="p-2">{{ p.name }}</td>
+          <td class="p-2">{{ p.category }}</td>
+          <td class="p-2">{{ p.material }}</td>
+          <td class="p-2">${{ p.sale_price }}</td>
+          <td class="p-2">{{ p.stock }}</td>
+
+          <td class="p-2">
+            <a href="{% url 'products_web:product_edit' p.id %}"
+               class="text-blue-600 hover:underline">
+              Editar
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" class="p-4 text-center text-gray-500">
+            No hay productos registrados
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</main>
+
+</body>
+</html>

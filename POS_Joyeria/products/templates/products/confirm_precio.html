@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirmar precio</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<div class="min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white max-w-md w-full rounded-lg shadow p-6">
+
+    <h2 class="text-xl font-bold text-red-600 mb-4">
+      Confirmar precio
+    </h2>
+
+    <p class="mb-4">
+      El <strong>precio de venta</strong> es menor que el
+      <strong>precio de compra</strong>.
+    </p>
+
+    <div class="bg-gray-100 p-3 rounded mb-4 text-sm">
+      <p>Precio compra: <strong>${{ compra }}</strong></p>
+      <p>Precio venta: <strong>${{ venta }}</strong></p>
+    </div>
+
+    <p class="mb-6">¿Está seguro de continuar?</p>
+
+    <form method="post" enctype="multipart/form-data" class="flex justify-end gap-2">
+      {% csrf_token %}
+
+      <!-- reenviamos todos los datos -->
+      {% for field in form %}
+        {{ field.as_hidden }}
+      {% endfor %}
+
+      <a href="{% url 'products_web:list' %}"
+         class="px-4 py-2 border rounded">
+        Cancelar
+      </a>
+
+      <button name="confirmar"
+              value="1"
+              class="px-4 py-2 bg-amber-700 text-white rounded hover:bg-amber-800">
+        Sí, guardar
+      </button>
+    </form>
+
+  </div>
+</div>
+
+</body>
+</html>
