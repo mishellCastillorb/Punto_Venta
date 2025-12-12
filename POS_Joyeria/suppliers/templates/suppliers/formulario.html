@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if modo == "editar" %}Editar{% else %}Nuevo{% endif %} proveedor</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<main class="min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-xl">
+
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold">
+        {% if modo == "editar" %}Editar proveedor{% else %}Nuevo proveedor{% endif %}
+      </h2>
+      <a class="text-sm text-amber-800 underline" href="{% url 'suppliers_web:list' %}">
+        ← Volver a proveedores
+      </a>
+    </div>
+
+    <div class="bg-white shadow rounded-xl p-6">
+      <form method="post" novalidate class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+          <label class="block mb-1 text-sm font-medium">Nombre</label>
+          {{ form.name }}
+          {% for e in form.name.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label class="block mb-1 text-sm font-medium">Código</label>
+          {{ form.code }}
+          {% for e in form.code.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label class="block mb-1 text-sm font-medium">Teléfono</label>
+          {{ form.phone }}
+          {% for e in form.phone.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label class="block mb-1 text-sm font-medium">Correo</label>
+          {{ form.email }}
+          {% for e in form.email.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div>
+  <label class="block mb-1 text-sm font-medium">Notas (opcional)</label>
+  <div class="[&>textarea]:h-32 [&>textarea]:resize-y">
+    {{ form.notes }}
+  </div>
+  {% for e in form.notes.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+</div>
+
+
+        {% if form.non_field_errors %}
+          <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+            {% for e in form.non_field_errors %}
+              <p class="text-sm">{{ e }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="flex justify-end gap-2 pt-2">
+          <a href="{% url 'suppliers_web:list' %}" class="px-4 py-2 border rounded hover:bg-gray-50">
+            Cancelar
+          </a>
+          <button type="submit" class="px-4 py-2 bg-amber-700 text-white rounded hover:bg-amber-800">
+            Guardar
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>

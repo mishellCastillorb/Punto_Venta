@@ -1,0 +1,61 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+.env
+.env.*
+
+# Migraciones compiladas (NO borrar las carpetas migrations)
+**/migrations/__pycache__/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Django static & media
+staticfiles/
+media/
+
+# Coverage / Tests
+.coverage
+htmlcov/
+coverage.xml
+pytest_cache/
+
+# Node / Frontend (Tailwind)
+
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Para los build de frontend
+FRONTEND/dist/*
+!FRONTEND/dist/output.css
+
+# IDEs / Editors
+
+.idea/
+.vscode/
+*.iml
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# Build / cache
+
+*.tmp
+*.bak
+*.swp
+# Python
+*.pyc
+# Media / test files
+*.jpg
+*.jpeg
+*.png
+/media/

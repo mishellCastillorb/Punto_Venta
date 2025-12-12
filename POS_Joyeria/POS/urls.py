@@ -10,4 +10,7 @@ urlpatterns = [
     path('api/suppliers/', include('suppliers.urls')),
     path('api/products/', include('products.urls')),
     path('api/employees/', include('staff.urls')),
+
+    # WEB (sin JS)
+    path('proveedores/', include('suppliers.web_urls')),
 ]

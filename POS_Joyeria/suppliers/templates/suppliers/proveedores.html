@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Proveedores</title>
+{% load static %}
+<link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+<main class="min-h-screen w-full max-w-5xl mx-auto p-6">
+
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold">Proveedores</h2>
+
+    <a href="{% url 'suppliers_web:create' %}"
+       class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
+      + Nuevo
+    </a>
+  </div>
+
+  <div class="bg-white shadow rounded overflow-hidden">
+    <table class="w-full text-left">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2">Nombre</th>
+          <th class="p-2">Código</th>
+          <th class="p-2">Teléfono</th>
+          <th class="p-2">Correo</th>
+          <th class="p-2">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in proveedores %}
+          <tr class="border-b">
+            <td class="p-2">{{ p.name }}</td>
+            <td class="p-2">{{ p.code }}</td>
+            <td class="p-2">{{ p.phone }}</td>
+            <td class="p-2">{{ p.email }}</td>
+            <td class="p-2">
+  <div class="flex gap-2">
+    <a href="{% url 'suppliers_web:edit' p.id %}"
+       class="px-3 py-1 text-sm bg-amber-700 text-white rounded">
+      Editar
+    </a>
+
+    <form method="post"
+      action="{% url 'suppliers_web:delete' p.id %}"
+      onsubmit="return confirm('¿Seguro que deseas eliminar este proveedor?');">
+  {% csrf_token %}
+  <button class="bg-red-600 text-white px-3 py-1 rounded">
+    Eliminar
+  </button>
+</form>
+
+  </div>
+</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td class="p-4 text-gray-500" colspan="5">No hay proveedores registrados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+</main>
+{% load static %}
+<script src="{% static 'js/proveedores.js' %}"></script>
+</body>
+</html>

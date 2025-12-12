@@ -1,4 +1,3 @@
-# suppliers/urls.py
 from django.urls import path
 from .views import (
     SupplierListCreateAPIView,
@@ -7,6 +6,5 @@ from .views import (
 
 urlpatterns = [
     path('', SupplierListCreateAPIView.as_view(), name="supplier-list-create"),
-
     path('<int:pk>/', SupplierRetrieveUpdateDestroyAPIView.as_view(), name="supplier-detail"),
 ]

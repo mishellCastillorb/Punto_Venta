@@ -3,7 +3,7 @@ from django.db.utils import IntegrityError
 from .models import Supplier
 from rest_framework.test import APITestCase
 from django.urls import reverse
-
+from suppliers.models import Supplier
 
 class SupplierModelTest(TestCase):
 
@@ -233,4 +233,164 @@ class SupplierAPITestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         prov.refresh_from_db()
         self.assertEqual(prov.name, "Proveedor Base Editado")
+
+class SupplierWebViewsTestCase(TestCase):
+    def setUp(self):
+        self.s1 = Supplier.objects.create(
+            name="Joyas Eva",
+            code="JE",
+            phone="5567253827",
+            email="joyaseva@gmail.com",
+            notes="Notas"
+        )
+
+    def test_list_muestra_template_y_contexto(self):
+        url = reverse("suppliers_web:list")
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/proveedores.html")
+
+        # Contexto
+        self.assertIn("proveedores", res.context)
+        self.assertTrue(any(p.id == self.s1.id for p in res.context["proveedores"]))
+
+        # Render básico
+        self.assertContains(res, "Proveedores")
+        self.assertContains(res, "Joyas Eva")
+
+    def test_list_sin_registros_muestra_mensaje(self):
+        Supplier.objects.all().delete()
+
+        url = reverse("suppliers_web:list")
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/proveedores.html")
+
+        # Ajusta el texto al que tú pusiste en el template
+        self.assertContains(res, "No hay proveedores", status_code=200)
+
+    # ---------- CREATE ----------
+    def test_create_get_renderiza_formulario(self):
+        url = reverse("suppliers_web:create")
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertIn("form", res.context)
+        self.assertEqual(res.context.get("modo"), "crear")  # si tú lo seteas así
+
+    def test_create_post_valido_crea_y_redirige(self):
+        url = reverse("suppliers_web:create")
+        payload = {
+            "name": "Proveedor Nuevo",
+            "code": "PN1",
+            "phone": "9515786598",
+            "email": "proveedor1@gmail.com",
+            "notes": "Hola",
+        }
+
+        res = self.client.post(url, data=payload, follow=False)
+
+        # normalmente redirige al list
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res["Location"], reverse("suppliers_web:list"))
+
+        self.assertTrue(Supplier.objects.filter(code="PN1").exists())
+
+    def test_create_post_invalido_se_queda_en_form_con_errores(self):
+        # Enviar vacío para disparar "required"
+        url = reverse("suppliers_web:create")
+        payload = {
+            "name": "",
+            "code": "",
+            "phone": "",
+            "email": "",
+            "notes": "",
+        }
+
+        res = self.client.post(url, data=payload)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertIn("form", res.context)
+
+        form = res.context["form"]
+        self.assertTrue(form.errors)
+        # Si tus forms tienen mensajes en español, puedes checarlos:
+        # self.assertIn("El nombre es obligatorio", str(form.errors))
+
+    def test_create_post_duplicados_muestra_errores(self):
+        url = reverse("suppliers_web:create")
+        payload = {
+            "name": "Otro",
+            "code": self.s1.code,   # duplicado
+            "phone": self.s1.phone, # duplicado
+            "email": self.s1.email, # duplicado
+            "notes": "",
+        }
+
+        res = self.client.post(url, data=payload)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertTrue(res.context["form"].errors)
+
+    # ---------- EDIT ----------
+    def test_edit_get_renderiza_form_con_datos(self):
+        url = reverse("suppliers_web:edit", args=[self.s1.id])
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertIn("form", res.context)
+
+        form = res.context["form"]
+        # initial / instance data
+        self.assertEqual(form.instance.id, self.s1.id)
+
+    def test_edit_post_valido_actualiza_y_redirige(self):
+        url = reverse("suppliers_web:edit", args=[self.s1.id])
+        payload = {
+            "name": "Joyas Eva Editado",
+            "code": "JE",  # mismo code permitido
+            "phone": "5567253827",  # mismo phone permitido
+            "email": "joyaseva@gmail.com",  # mismo email permitido
+            "notes": "Actualizado",
+        }
+
+        res = self.client.post(url, data=payload, follow=False)
+
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res["Location"], reverse("suppliers_web:list"))
+
+        self.s1.refresh_from_db()
+        self.assertEqual(self.s1.name, "Joyas Eva Editado")
+        self.assertEqual(self.s1.notes, "Actualizado")
+
+    def test_edit_post_invalido_se_queda_en_form(self):
+        url = reverse("suppliers_web:edit", args=[self.s1.id])
+        payload = {
+            "name": "",  # inválido
+            "code": "JE",
+            "phone": "5567253827",
+            "email": "joyaseva@gmail.com",
+            "notes": "",
+        }
+
+        res = self.client.post(url, data=payload)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "suppliers/formulario.html")
+        self.assertTrue(res.context["form"].errors)
+
+    # ---------- DELETE ----------
+    def test_delete_post_elimina_y_redirige(self):
+        url = reverse("suppliers_web:delete", args=[self.s1.id])
+        res = self.client.post(url, follow=False)
+
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res["Location"], reverse("suppliers_web:list"))
+        self.assertFalse(Supplier.objects.filter(id=self.s1.id).exists())
 
