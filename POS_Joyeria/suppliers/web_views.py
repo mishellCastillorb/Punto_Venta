@@ -1,11 +1,15 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Supplier
 from .forms import SupplierForm
+from utils.roles import role_required
 
+@role_required(["AdminPOS"])
 def supplier_list(request):
     proveedores = Supplier.objects.all().order_by("-id")
     return render(request, "suppliers/proveedores.html", {"proveedores": proveedores})
 
+
+@role_required(["AdminPOS"])
 def supplier_create(request):
     if request.method == "POST":
         form = SupplierForm(request.POST)
@@ -20,6 +24,7 @@ def supplier_create(request):
         "modo": "crear",
     })
 
+@role_required(["AdminPOS"])
 def supplier_update(request, pk):
     proveedor = get_object_or_404(Supplier, pk=pk)
 
@@ -37,6 +42,7 @@ def supplier_update(request, pk):
         "proveedor": proveedor,
     })
 
+@role_required(["AdminPOS"])
 def supplier_delete(request, pk):
     proveedor = get_object_or_404(Supplier, pk=pk)
 

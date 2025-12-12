@@ -13,6 +13,12 @@ urlpatterns = [
     path('api/products/', include('products.urls')),
     path('api/employees/', include('staff.urls')),
 
+    path("", include("home.urls")),
+    path("products/", include("products.urls")),
+   # path("sales/", include("sales.urls")),
+    path("staff/", include("staff.urls")),
+    path("suppliers/", include("suppliers.urls")),
+
     # WEB (sin JS)
     path('proveedores/', include('suppliers.web_urls')),
     path("products/", include("products.web_urls")),

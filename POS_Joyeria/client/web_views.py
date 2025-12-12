@@ -4,7 +4,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 from .models import Client
 from .forms import ClientForm
 
+from utils.roles import role_required
 
+@role_required(["AdminPOS", "VendedorPOS"])
 def client_list(request):
     """
     Lista clientes activos e inactivos.
@@ -21,7 +23,7 @@ def client_list(request):
         },
     )
 
-
+@role_required(["AdminPOS", "VendedorPOS"])
 @require_http_methods(["GET", "POST"])
 def client_create(request):
     if request.method == "POST":
@@ -43,7 +45,7 @@ def client_create(request):
         },
     )
 
-
+@role_required(["AdminPOS", "VendedorPOS"])
 @require_http_methods(["GET", "POST"])
 def client_edit(request, pk):
     client = get_object_or_404(Client, pk=pk)
@@ -66,7 +68,7 @@ def client_edit(request, pk):
         },
     )
 
-
+@role_required(["AdminPOS", "VendedorPOS"])
 @require_POST
 def client_delete(request, pk):
     """
@@ -77,7 +79,7 @@ def client_delete(request, pk):
     client.save(update_fields=["is_active"])
     return redirect("clients_web:list")
 
-
+@role_required(["AdminPOS", "VendedorPOS"])
 @require_POST
 def client_activate(request, pk):
     """
