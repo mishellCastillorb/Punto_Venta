@@ -29,6 +29,8 @@ urlpatterns = [
     path("proveedores/", include("suppliers.web_urls")),
     path("productos/", include("products.web_urls")),
     path("personal/", include("staff.web_urls")),
+    path("ventas/", include("sales.web_urls"))
+
 ]
 
 if settings.DEBUG:
