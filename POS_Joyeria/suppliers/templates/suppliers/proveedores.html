@@ -1,73 +1,128 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <title>Proveedores</title>
-{% load static %}
-<link href="{% static 'dist/output.css' %}" rel="stylesheet">
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100">
 
-<main class="min-h-screen w-full max-w-5xl mx-auto p-6">
+<div class="min-h-screen flex">
 
-  <div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold">Proveedores</h2>
+  <!-- MENU LATERAL -->
+  <aside class="w-64 bg-gray-900 text-white flex flex-col p-6">
+    <h1 class="text-2xl font-bold mb-8">POS</h1>
 
-    <a href="{% url 'suppliers_web:create' %}"
-       class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
-      + Nuevo
+    <nav class="flex-1 space-y-2 text-sm">
+      <!-- Productos: todos -->
+      <a href="{% url 'products_web:list' %}"
+         class="block py-2 px-3 rounded hover:bg-gray-700">
+        Productos
+      </a>
+
+      <!-- Clientes: Admin + Vendedor -->
+      <a href="{% url 'clients_web:list' %}"
+         class="block py-2 px-3 rounded hover:bg-gray-700">
+        Clientes
+      </a>
+
+      <!-- Proveedores: Admin + Vendedor -->
+      <a href="{% url 'suppliers_web:list' %}"
+         class="block py-2 px-3 rounded bg-gray-700">
+        Proveedores
+      </a>
+
+      <!-- Personal: solo Admin -->
+      {% if is_adminpos %}
+        <a href="{% url 'staff_web:list' %}"
+           class="block py-2 px-3 rounded hover:bg-gray-700">
+          Personal
+        </a>
+      {% endif %}
+    </nav>
+
+    <a href="{% url 'logout_pos' %}"
+       class="mt-6 inline-flex justify-center bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+      Cerrar sesión
     </a>
-  </div>
+  </aside>
 
-  <div class="bg-white shadow rounded overflow-hidden">
-    <table class="w-full text-left">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2">Nombre</th>
-          <th class="p-2">Código</th>
-          <th class="p-2">Teléfono</th>
-          <th class="p-2">Correo</th>
-          <th class="p-2">Acciones</th>
-        </tr>
-      </thead>
+  <!-- CONTENIDO -->
+  <main class="flex-1 min-h-screen w-full max-w-5xl mx-auto p-6">
 
-      <tbody>
-        {% for p in proveedores %}
-          <tr class="border-b">
-            <td class="p-2">{{ p.name }}</td>
-            <td class="p-2">{{ p.code }}</td>
-            <td class="p-2">{{ p.phone }}</td>
-            <td class="p-2">{{ p.email }}</td>
-            <td class="p-2">
-  <div class="flex gap-2">
-    <a href="{% url 'suppliers_web:edit' p.id %}"
-       class="px-3 py-1 text-sm bg-amber-700 text-white rounded">
-      Editar
-    </a>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">Proveedores</h2>
 
-    <form method="post"
-      action="{% url 'suppliers_web:delete' p.id %}"
-      onsubmit="return confirm('¿Seguro que deseas eliminar este proveedor?');">
-  {% csrf_token %}
-  <button class="bg-red-600 text-white px-3 py-1 rounded">
-    Eliminar
-  </button>
-</form>
+      {% if is_adminpos %}
+        <a href="{% url 'suppliers_web:create' %}"
+           class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded">
+          + Nuevo
+        </a>
+      {% endif %}
+    </div>
 
-  </div>
-</td>
-          </tr>
-        {% empty %}
+    <div class="bg-white shadow rounded overflow-hidden">
+      <table class="w-full text-left">
+        <thead class="bg-gray-200">
           <tr>
-            <td class="p-4 text-gray-500" colspan="5">No hay proveedores registrados.</td>
+            <th class="p-2">Nombre</th>
+            <th class="p-2">Código</th>
+            <th class="p-2">Teléfono</th>
+            <th class="p-2">Correo</th>
+            <th class="p-2">Acciones</th>
           </tr>
-        {% endfor %}
-      </tbody>
+        </thead>
 
-    </table>
-  </div>
-</main>
-{% load static %}
+        <tbody>
+          {% for p in proveedores %}
+            <tr class="border-b">
+              <td class="p-2">{{ p.name }}</td>
+              <td class="p-2">{{ p.code }}</td>
+              <td class="p-2">{{ p.phone|default:"-" }}</td>
+              <td class="p-2">{{ p.email|default:"-" }}</td>
+
+              <td class="p-2">
+                {% if is_adminpos %}
+                  <div class="flex gap-2">
+                    <a href="{% url 'suppliers_web:edit' p.id %}"
+                       class="px-3 py-1 text-sm bg-amber-700 text-white rounded whitespace-nowrap">
+                      Editar
+                    </a>
+
+                    <form method="post"
+                          action="{% url 'suppliers_web:delete' p.id %}"
+                          onsubmit="return confirm('¿Seguro que deseas eliminar este proveedor?');"
+                          class="m-0">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="bg-red-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
+                        Eliminar
+                      </button>
+                    </form>
+                  </div>
+                {% else %}
+                  <span class="text-gray-400 text-xs">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td class="p-4 text-gray-500" colspan="5">
+                No hay proveedores registrados.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+
+  </main>
+
+</div>
+
 <script src="{% static 'js/proveedores.js' %}"></script>
 </body>
 </html>

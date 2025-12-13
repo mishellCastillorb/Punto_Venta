@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if modo == "editar" %}Editar{% else %}Nuevo{% endif %} personal</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+<main class="min-h-screen flex justify-center p-6">
+  <div class="w-full max-w-xl">
+
+    <div class="mb-4">
+      <h2 class="text-2xl font-bold">
+        {% if modo == "editar" %}Editar personal{% else %}Nuevo personal{% endif %}
+      </h2>
+      <a class="text-sm text-amber-800 underline" href="{% url 'staff_web:list' %}">
+        ← Volver a personal
+      </a>
+    </div>
+
+    <div class="bg-white shadow rounded-xl p-4">
+      <p id="staff-error" class="text-red-600 text-sm mb-3"></p>
+
+      <form id="form-staff" method="post" novalidate class="space-y-3">
+        {% csrf_token %}
+
+        <!-- Usuario + Rol -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% if form.username %}
+          <div>
+            <label class="block mb-1 text-sm font-medium">Usuario</label>
+            {{ form.username }}
+            {% for e in form.username.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+          {% endif %}
+
+          <div>
+            <label class="block mb-1 text-sm font-medium">Rol</label>
+            {{ form.rol }}
+            {% for e in form.rol.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <!-- Contraseñas (solo crear) -->
+        {% if form.password1 or form.password2 %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% if form.password1 %}
+          <div>
+            <label class="block mb-1 text-sm font-medium">Contraseña</label>
+            {{ form.password1 }}
+            {% for e in form.password1.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+          {% endif %}
+
+          {% if form.password2 %}
+          <div>
+            <label class="block mb-1 text-sm font-medium">Confirmar contraseña</label>
+            {{ form.password2 }}
+            {% for e in form.password2.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Nombre -->
+        <div>
+          <label class="block mb-1 text-sm font-medium">Nombre</label>
+          {{ form.nombre }}
+          {% for e in form.nombre.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        <!-- Apellidos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block mb-1 text-sm font-medium">Apellido paterno</label>
+            {{ form.apellido_paterno }}
+            {% for e in form.apellido_paterno.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div>
+            <label class="block mb-1 text-sm font-medium">Apellido materno</label>
+            {{ form.apellido_materno }}
+            {% for e in form.apellido_materno.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <!-- Correo + Tel -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block mb-1 text-sm font-medium">Correo</label>
+            {{ form.email }}
+            {% for e in form.email.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+
+          <div>
+            <label class="block mb-1 text-sm font-medium">Teléfono</label>
+            {{ form.telefono }}
+            {% for e in form.telefono.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <!-- Dirección -->
+        <div>
+          <label class="block mb-1 text-sm font-medium">Dirección</label>
+          {{ form.direccion }}
+          {% for e in form.direccion.errors %}<p class="text-red-600 text-sm mt-1">{{ e }}</p>{% endfor %}
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+          {% for e in form.non_field_errors %}
+          <p class="text-sm">{{ e }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="flex justify-end gap-2 pt-2">
+          <a href="{% url 'staff_web:list' %}"
+             class="px-4 py-2 border rounded hover:bg-gray-50">
+            Cancelar
+          </a>
+          <button type="submit"
+                  class="px-4 py-2 bg-amber-700 text-white rounded hover:bg-amber-800">
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</main>
+
+<script src="{% static 'js/personal.js' %}"></script>
+</body>
+</html>

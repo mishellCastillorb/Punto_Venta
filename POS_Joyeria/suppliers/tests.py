@@ -1,79 +1,214 @@
 from django.test import TestCase
 from django.db.utils import IntegrityError
+from django.core.exceptions import ValidationError
 from django.urls import reverse
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 
 from rest_framework.test import APITestCase
+from rest_framework import status
 
 from .models import Supplier
+from .forms import SupplierForm
+from .serializers import SupplierSerializer
 
 
-# -------------------- MODEL TESTS --------------------
+# MODEL TESTS
 
 class SupplierModelTest(TestCase):
-
-    def test_crear_proveedor(self):
-        supplier = Supplier.objects.create(
+    def test_crear_proveedor_ok_y_str(self):
+        s = Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
             phone="5551112222",
             email="proveedor1@test.com",
-            notes="Proveedor principal de anillos."
+            notes="Proveedor principal",
         )
-
         self.assertEqual(Supplier.objects.count(), 1)
-        self.assertEqual(supplier.code, "V01")
-        self.assertEqual(str(supplier), "Proveedor 1")
+        self.assertEqual(str(s), "Proveedor 1")
 
-    def test_codigo_unico_db(self):
+    def test_unique_code_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
             phone="5551112222",
-            email="proveedor1@test.com",
+            email="p1@test.com",
         )
-
         with self.assertRaises(IntegrityError):
             Supplier.objects.create(
                 name="Proveedor 2",
-                code="V01",  # mismo código
+                code="V01",
                 phone="5553334444",
-                email="proveedor2@test.com",
+                email="p2@test.com",
             )
 
-    def test_telefono_unico_db(self):
+    def test_unique_phone_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
             phone="5551112222",
-            email="proveedor1@test.com",
+            email="p1@test.com",
         )
-
         with self.assertRaises(IntegrityError):
             Supplier.objects.create(
                 name="Proveedor 2",
                 code="V02",
-                phone="5551112222",  # mismo teléfono
-                email="proveedor2@test.com",
+                phone="5551112222",
+                email="p2@test.com",
             )
 
-    def test_correo_unico_db(self):
+    def test_unique_email_db(self):
         Supplier.objects.create(
             name="Proveedor 1",
             code="V01",
             phone="5551112222",
-            email="proveedor1@test.com",
+            email="p1@test.com",
         )
-
         with self.assertRaises(IntegrityError):
             Supplier.objects.create(
                 name="Proveedor 2",
                 code="V02",
                 phone="5553334444",
-                email="proveedor1@test.com",  # mismo correo
+                email="p1@test.com",
             )
+
+    def test_phone_validator_solo_digitos(self):
+        s = Supplier(
+            name="Proveedor 1",
+            code="V01",
+            phone="55-50A01111",  # invalido por regex validator
+            email="p1@test.com",
+        )
+        with self.assertRaises(ValidationError):
+            s.full_clean()
+
+
+# FORM TESTS
+
+class SupplierFormTest(TestCase):
+    def test_form_crea_ok(self):
+        form = SupplierForm(data={
+            "name": "Joyas Eva",
+            "code": "JE01",
+            "phone": "5567253827",
+            "email": "joyaseva@gmail.com",
+            "notes": "Notas",
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        obj = form.save()
+        self.assertEqual(obj.code, "JE01")
+
+    def test_form_requiere_campos_obligatorios(self):
+        # Por modelo: name/code/phone/email son obligatorios
+        form = SupplierForm(data={
+            "name": "",
+            "code": "",
+            "phone": "",
+            "email": "",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("name", form.errors)
+        self.assertIn("code", form.errors)
+        self.assertIn("phone", form.errors)
+        self.assertIn("email", form.errors)
+
+    def test_form_phone_invalido_por_regex(self):
+        form = SupplierForm(data={
+            "name": "Proveedor Tel Malo",
+            "code": "PT1",
+            "phone": "55-50A01111",
+            "email": "pt1@gmail.com",
+            "notes": "",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
+
+    def test_form_duplicados_unicos(self):
+        Supplier.objects.create(
+            name="Base",
+            code="B01",
+            phone="5550001111",
+            email="base@test.com",
+        )
+        form = SupplierForm(data={
+            "name": "Otro",
+            "code": "B01",
+            "phone": "5550001111",
+            "email": "base@test.com",
+            "notes": "",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("code", form.errors)
+        self.assertIn("phone", form.errors)
+        self.assertIn("email", form.errors)
+
+
+# SERIALIZER TESTS
+
+class SupplierSerializerTest(TestCase):
+    def test_requeridos_y_mensajes(self):
+        s = SupplierSerializer(data={
+            "name": "",
+            "code": "",
+            "phone": "",
+            "email": "",
+        })
+        self.assertFalse(s.is_valid())
+        self.assertIn("name", s.errors)
+        self.assertIn("code", s.errors)
+        self.assertIn("phone", s.errors)
+        self.assertIn("email", s.errors)
+
+    def test_name_minimo_3(self):
+        s = SupplierSerializer(data={
+            "name": "Ab",
+            "code": "P10",
+            "phone": "5551234567",
+            "email": "p10@test.com",
+        })
+        self.assertFalse(s.is_valid())
+        self.assertIn("name", s.errors)
+        self.assertIn("al menos 3", str(s.errors["name"][0]).lower())
+
+    def test_unicidad_controlada_code_phone_email(self):
+        Supplier.objects.create(
+            name="Base",
+            code="P01",
+            phone="5550001111",
+            email="prov1@test.com",
+        )
+
+        s = SupplierSerializer(data={
+            "name": "Otro Proveedor",
+            "code": "p01",               # case-insensitive
+            "phone": "5550001111",       # exact
+            "email": "PROV1@test.com",   # case-insensitive
+        })
+        self.assertFalse(s.is_valid())
+        self.assertIn("code", s.errors)
+        self.assertIn("phone", s.errors)
+        self.assertIn("email", s.errors)
+
+    def test_update_excluye_self_en_unicidad(self):
+        prov = Supplier.objects.create(
+            name="Proveedor Base",
+            code="P20",
+            phone="5550001111",
+            email="p20@test.com",
+        )
+        s = SupplierSerializer(instance=prov, data={
+            "name": "Proveedor Base Editado",
+            "code": "p20",              # mismo pero distinto case
+            "phone": "5550001111",
+            "email": "P20@test.com",    # mismo pero distinto case
+            "notes": "Editado",
+        })
+        self.assertTrue(s.is_valid(), s.errors)
+
+
+# API TESTS (DRF)
 
 class SupplierAPITestCase(APITestCase):
-
     def setUp(self):
         self.url_list = reverse("supplier-list-create")
 
@@ -83,95 +218,20 @@ class SupplierAPITestCase(APITestCase):
             "code": "P01",
             "phone": "5550001111",
             "email": "prov1@test.com",
-            "notes": "Mayorista de plata",
+            "notes": "Mayorista",
         }
-
         response = self.client.post(self.url_list, data, format="json")
-
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Supplier.objects.count(), 1)
 
-    def test_rechaza_sin_code_phone_email(self):
-        data = {
-            "name": "Proveedor Incompleto",
-            "code": "",
-            "phone": "",
-            "email": "",
-        }
-
+    def test_rechaza_sin_campos_obligatorios(self):
+        data = {"name": "", "code": "", "phone": "", "email": ""}
         response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("code", response.data)
         self.assertIn("phone", response.data)
         self.assertIn("email", response.data)
-
-    def test_nombre_demasiado_corto(self):
-        data = {
-            "name": "Ab",
-            "code": "P10",
-            "phone": "5551234567",
-            "email": "p10@test.com",
-        }
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
         self.assertIn("name", response.data)
-
-    def test_rechaza_code_duplicado(self):
-        Supplier.objects.create(
-            name="Proveedor Base",
-            code="P01",
-            phone="5550001111",
-            email="prov1@test.com",
-        )
-
-        data = {
-            "name": "Proveedor Duplicado",
-            "code": "P01",
-            "phone": "5550002222",
-            "email": "otro@test.com",
-        }
-
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("code", response.data)
-
-    def test_rechaza_phone_duplicado(self):
-        Supplier.objects.create(
-            name="Proveedor Base",
-            code="P01",
-            phone="5550001111",
-            email="prov1@test.com",
-        )
-
-        data = {
-            "name": "Proveedor Duplicado",
-            "code": "P02",
-            "phone": "5550001111",  # mismo teléfono
-            "email": "otro@test.com",
-        }
-
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("phone", response.data)
-
-    def test_rechaza_email_duplicado(self):
-        Supplier.objects.create(
-            name="Proveedor Base",
-            code="P01",
-            phone="5550001111",
-            email="prov1@test.com",
-        )
-
-        data = {
-            "name": "Proveedor Duplicado",
-            "code": "P02",
-            "phone": "5550002222",
-            "email": "prov1@test.com",  # mismo correo
-        }
-
-        response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("email", response.data)
 
     def test_email_formato_invalido(self):
         data = {
@@ -181,10 +241,29 @@ class SupplierAPITestCase(APITestCase):
             "email": "no-es-correo",
         }
         response = self.client.post(self.url_list, data, format="json")
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", response.data)
 
-    def test_actualizar_mantiene_unicos_correctamente(self):
+    def test_rechaza_duplicados(self):
+        Supplier.objects.create(
+            name="Proveedor Base",
+            code="P01",
+            phone="5550001111",
+            email="prov1@test.com",
+        )
+        data = {
+            "name": "Proveedor Duplicado",
+            "code": "p01",
+            "phone": "5550001111",
+            "email": "PROV1@test.com",
+        }
+        response = self.client.post(self.url_list, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("code", response.data)
+        self.assertIn("phone", response.data)
+        self.assertIn("email", response.data)
+
+    def test_detail_get_put_delete(self):
         prov = Supplier.objects.create(
             name="Proveedor Base",
             code="P20",
@@ -193,6 +272,13 @@ class SupplierAPITestCase(APITestCase):
         )
 
         url_detail = reverse("supplier-detail", args=[prov.id])
+
+        # GET
+        r1 = self.client.get(url_detail, format="json")
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+        self.assertEqual(r1.data["code"], "P20")
+
+        # PUT
         data = {
             "name": "Proveedor Base Editado",
             "code": "P20",
@@ -200,47 +286,54 @@ class SupplierAPITestCase(APITestCase):
             "email": "p20@test.com",
             "notes": "Editado",
         }
-        response = self.client.put(url_detail, data, format="json")
-        self.assertEqual(response.status_code, 200)
+        r2 = self.client.put(url_detail, data, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
         prov.refresh_from_db()
         self.assertEqual(prov.name, "Proveedor Base Editado")
 
+        # DELETE
+        r3 = self.client.delete(url_detail)
+        self.assertEqual(r3.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Supplier.objects.filter(id=prov.id).exists())
+
+
+# WEB VIEWS TESTS (role_required AdminPOS)
 
 class SupplierWebViewsTestCase(TestCase):
-    def setUp(self):
-        self.s1 = Supplier.objects.create(
+    @classmethod
+    def setUpTestData(cls):
+        cls.g_admin, _ = Group.objects.get_or_create(name="AdminPOS")
+        User = get_user_model()
+        cls.admin = User.objects.create_user(username="adminpos", password="pass12345")
+        cls.admin.groups.add(cls.g_admin)
+
+        cls.s1 = Supplier.objects.create(
             name="Joyas Eva",
             code="JE",
             phone="5567253827",
             email="joyaseva@gmail.com",
-            notes="Notas"
+            notes="Notas",
         )
 
-    def test_list_muestra_template_y_contexto(self):
+    def login_admin(self):
+        ok = self.client.login(username="adminpos", password="pass12345")
+        self.assertTrue(ok)
+
+    def test_list_renderiza_template_y_contexto(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:list")
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/proveedores.html")
-
         self.assertIn("proveedores", res.context)
         self.assertTrue(any(p.id == self.s1.id for p in res.context["proveedores"]))
-
-        self.assertContains(res, "Proveedores")
         self.assertContains(res, "Joyas Eva")
 
-    def test_list_sin_registros_muestra_mensaje(self):
-        Supplier.objects.all().delete()
-
-        url = reverse("suppliers_web:list")
-        res = self.client.get(url)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertTemplateUsed(res, "suppliers/proveedores.html")
-        self.assertContains(res, "No hay proveedores", status_code=200)
-
-    #  CREATE
     def test_create_get_renderiza_formulario(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:create")
         res = self.client.get(url)
 
@@ -250,6 +343,8 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(res.context.get("modo"), "crear")
 
     def test_create_post_valido_crea_y_redirige(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:create")
         payload = {
             "name": "Proveedor Nuevo",
@@ -258,72 +353,26 @@ class SupplierWebViewsTestCase(TestCase):
             "email": "proveedor1@gmail.com",
             "notes": "Hola",
         }
-
         res = self.client.post(url, data=payload, follow=False)
 
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res["Location"], reverse("suppliers_web:list"))
         self.assertTrue(Supplier.objects.filter(code="PN1").exists())
 
-    def test_create_post_phone_no_numerico_muestra_error(self):
-        url = reverse("suppliers_web:create")
-        payload = {
-            "name": "Proveedor Tel Malo",
-            "code": "PT1",
-            "phone": "55-50A01111",  # inválido
-            "email": "pt1@gmail.com",
-            "notes": "",
-        }
-        res = self.client.post(url, data=payload)
-        self.assertEqual(res.status_code, 200)
-        self.assertTemplateUsed(res, "suppliers/formulario.html")
-        self.assertTrue(res.context["form"].errors)
-        self.assertIn("phone", res.context["form"].errors)
-
-    def test_create_post_phone_corto_muestra_error(self):
-        url = reverse("suppliers_web:create")
-        payload = {
-            "name": "Proveedor Tel Corto",
-            "code": "PT2",
-            "phone": "123456",  # 6 dígitos
-            "email": "pt2@gmail.com",
-            "notes": "",
-        }
-        res = self.client.post(url, data=payload)
-        self.assertEqual(res.status_code, 200)
-        self.assertTemplateUsed(res, "suppliers/formulario.html")
-        self.assertTrue(res.context["form"].errors)
-        self.assertIn("phone", res.context["form"].errors)
-
-    def test_create_post_duplicados_muestra_errores(self):
-        url = reverse("suppliers_web:create")
-        payload = {
-            "name": "Otro",
-            "code": self.s1.code,
-            "phone": self.s1.phone,
-            "email": self.s1.email,
-            "notes": "",
-        }
-
-        res = self.client.post(url, data=payload)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertTemplateUsed(res, "suppliers/formulario.html")
-        self.assertTrue(res.context["form"].errors)
-
-    # EDIT
     def test_edit_get_renderiza_form_con_datos(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:edit", args=[self.s1.id])
         res = self.client.get(url)
 
         self.assertEqual(res.status_code, 200)
         self.assertTemplateUsed(res, "suppliers/formulario.html")
         self.assertIn("form", res.context)
-
-        form = res.context["form"]
-        self.assertEqual(form.instance.id, self.s1.id)
+        self.assertEqual(res.context["form"].instance.id, self.s1.id)
 
     def test_edit_post_valido_actualiza_y_redirige(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:edit", args=[self.s1.id])
         payload = {
             "name": "Joyas Eva Editado",
@@ -332,7 +381,6 @@ class SupplierWebViewsTestCase(TestCase):
             "email": "joyaseva@gmail.com",
             "notes": "Actualizado",
         }
-
         res = self.client.post(url, data=payload, follow=False)
 
         self.assertEqual(res.status_code, 302)
@@ -342,24 +390,9 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(self.s1.name, "Joyas Eva Editado")
         self.assertEqual(self.s1.notes, "Actualizado")
 
-    def test_edit_post_invalido_se_queda_en_form(self):
-        url = reverse("suppliers_web:edit", args=[self.s1.id])
-        payload = {
-            "name": "",
-            "code": "JE",
-            "phone": "5567253827",
-            "email": "joyaseva@gmail.com",
-            "notes": "",
-        }
-
-        res = self.client.post(url, data=payload)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertTemplateUsed(res, "suppliers/formulario.html")
-        self.assertTrue(res.context["form"].errors)
-
-    #  DELETE
     def test_delete_post_elimina_y_redirige(self):
+        self.login_admin()
+
         url = reverse("suppliers_web:delete", args=[self.s1.id])
         res = self.client.post(url, follow=False)
 

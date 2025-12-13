@@ -137,3 +137,6 @@ STATICFILES_DIRS = [BASE_DIR.parent / "FRONTEND"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/proveedores/"
+LOGOUT_REDIRECT_URL = "/login/"
