@@ -17,10 +17,18 @@ class CategoryForm(forms.ModelForm):
 
     def clean_name(self):
         v = (self.cleaned_data.get("name") or "").strip()
+
         if not v:
             raise forms.ValidationError("El nombre es obligatorio.")
         if len(v) < 3:
             raise forms.ValidationError("Debe tener al menos 3 caracteres.")
+
+        qs = Category.objects.filter(name__iexact=v)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Ya existe una categoría con ese nombre.")
+
         return v
 
 
@@ -39,7 +47,22 @@ class MaterialForm(forms.ModelForm):
             }),
         }
 
-BASE_INPUT = "border p-2 rounded w-full"
+    def clean_name(self):
+        v = (self.cleaned_data.get("name") or "").strip()
+
+        if not v:
+            raise forms.ValidationError("El nombre es obligatorio.")
+        if len(v) < 2:
+            raise forms.ValidationError("Debe tener al menos 2 caracteres.")
+
+        qs = Material.objects.filter(name__iexact=v)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Ya existe un material con ese nombre.")
+
+        return v
+
 
 class ProductForm(forms.ModelForm):
     class Meta:

@@ -1,0 +1,48 @@
+{% load static %}
+{% load roles_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}POS{% endblock %}</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+  <div class="min-h-screen flex">
+
+    <!-- SIDEBAR -->
+    <aside class="w-56 bg-gray-900 text-white flex flex-col p-5">
+      <h1 class="text-2xl font-bold mb-8">POS</h1>
+
+      <nav class="flex-1 space-y-2 text-sm">
+        <!-- Si luego quieres "Inicio", aquí lo pones -->
+        <!-- <a href="#" class="block py-2 px-3 rounded hover:bg-gray-700">Inicio</a> -->
+
+        {% if request.user|in_group:"AdminPOS" %}
+          <a href="{% url 'suppliers_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Proveedores</a>
+          <a href="{% url 'clients_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Clientes</a>
+          <a href="{% url 'products_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Productos</a>
+          <a href="{% url 'staff_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Personal</a>
+        {% else %}
+          {# VendedorPOS: SOLO Productos #}
+          <a href="{% url 'products_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Productos</a>
+        {% endif %}
+      </nav>
+
+      <a href="{% url 'logout_pos' %}"
+         class="mt-6 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm text-center">
+        Cerrar sesión
+      </a>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="flex-1 p-6">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+
+</body>
+</html>

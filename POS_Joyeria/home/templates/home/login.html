@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login POS</title>
+  {% load static %}
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+  <main class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl p-6 w-full" style="max-width: 420px;">
+
+      <h1 class="text-2xl font-bold mb-1">Iniciar sesión</h1>
+      <p class="text-sm text-gray-500 mb-5">Acceso al Punto de Venta</p>
+
+      {% if messages %}
+        <div class="mb-4 space-y-2">
+          {% for message in messages %}
+            <div class="p-2 rounded border text-sm
+              {% if message.tags == 'error' %}
+                border-red-300 text-red-700 bg-red-50
+              {% else %}
+                border-gray-200 text-gray-700 bg-gray-50
+              {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Usuario</label>
+          <input type="text" name="username" required
+                 class="border p-2 rounded w-full"
+                 placeholder="usuario" autocomplete="username" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Contraseña</label>
+          <input type="password" name="password" required
+                 class="border p-2 rounded w-full"
+                 placeholder="••••••••" autocomplete="current-password" />
+        </div>
+
+        <button type="submit"
+                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+          Entrar
+        </button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
