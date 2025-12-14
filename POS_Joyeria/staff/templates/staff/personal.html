@@ -1,251 +1,146 @@
+{% extends "home/base_pos.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Personal</title>
-  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
-</head>
+{% load roles_tags %}
 
-<body class="bg-gray-100">
+{% block title %}Personal{% endblock %}
 
-<div class="min-h-screen flex">
+{% block content %}
 
-  <!-- MENU LATERAL -->
-  <aside class="w-56 bg-gray-900 text-white flex flex-col p-6">
-    <h1 class="text-2xl font-bold mb-8">POS</h1>
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold">Personal</h2>
 
-    <nav class="flex-1 space-y-2 text-sm">
-    <a href="{% url 'sales:pos' %}" class="block py-2 px-3 rounded bg-gray-700">Ventas</a>
-      <a href="{% url 'products_web:list' %}"
-         class="block py-2 px-3 rounded hover:bg-gray-700">
-        Productos
+    {% if request.user|in_group:"AdminPOS" %}
+      <a href="{% url 'staff_web:create' %}"
+         class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded whitespace-nowrap">
+        + Nuevo
       </a>
-
-      <a href="{% url 'clients_web:list' %}"
-         class="block py-2 px-3 rounded hover:bg-gray-700">
-        Clientes
-      </a>
-
-      <a href="{% url 'suppliers_web:list' %}"
-         class="block py-2 px-3 rounded hover:bg-gray-700">
-        Proveedores
-      </a>
-
-      {% if role_user == "AdminPOS" or role_user == "SuperAdmin" %}
-        <a href="{% url 'staff_web:list' %}"
-           class="block py-2 px-3 rounded bg-gray-700">
-          Personal
-        </a>
-      {% endif %}
-    </nav>
-
-    <a href="{% url 'logout_pos' %}"
-       class="mt-6 block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded">
-      Cerrar sesión
-    </a>
-  </aside>
-
-  <!-- CONTENIDO -->
-  <main class="flex-1 p-6">
-
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold">Personal</h2>
-
-      {% if role_user == "AdminPOS" or role_user == "SuperAdmin" %}
-        <a href="{% url 'staff_web:create' %}"
-           class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded whitespace-nowrap">
-          + Nuevo
-        </a>
-      {% endif %}
-    </div>
-
-    {% if messages %}
-      <div class="mb-6 space-y-2">
-        {% for message in messages %}
-          <div class="p-3 rounded border text-sm
-            {% if message.tags == 'error' %} border-red-300 text-red-800 bg-red-50
-            {% elif message.tags == 'success' %} border-green-300 text-green-800 bg-green-50
-            {% else %} border-gray-200 text-gray-800 bg-gray-50 {% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
     {% endif %}
+  </div>
 
-    <!-- PERSONAL ACTIVO -->
-    <section class="mb-10">
-      <h3 class="text-lg font-semibold mb-3">Personal activo</h3>
+  {% if messages %}
+    <div class="mb-6 space-y-2">
+      {% for message in messages %}
+        <div class="p-3 rounded border text-sm
+          {% if message.tags == 'error' %} border-red-300 text-red-800 bg-red-50
+          {% elif message.tags == 'success' %} border-green-300 text-green-800 bg-green-50
+          {% else %} border-gray-200 text-gray-800 bg-gray-50 {% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
-      <div class="bg-white shadow rounded overflow-hidden">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="p-2">Usuario</th>
-              <th class="p-2">Nombre</th>
-              <th class="p-2">Correo</th>
-              <th class="p-2">Teléfono</th>
-              <th class="p-2">Rol</th>
-              <th class="p-2">Acciones</th>
+  <!-- PERSONAL ACTIVO -->
+  <section class="mb-10">
+    <h3 class="text-lg font-semibold mb-3">Personal activo</h3>
+
+    <div class="bg-white shadow rounded overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2">Usuario</th>
+            <th class="p-2">Nombre</th>
+            <th class="p-2">Correo</th>
+            <th class="p-2">Teléfono</th>
+            <th class="p-2">Rol</th>
+            <th class="p-2">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for p in activos %}
+            {% with rol=p.user.groups.all|first %}
+            <tr class="border-b">
+              <td class="p-2">{{ p.user.username }}</td>
+              <td class="p-2">{{ p.nombre }} {{ p.apellido_paterno }} {{ p.apellido_materno }}</td>
+              <td class="p-2">{{ p.user.email|default:"-" }}</td>
+              <td class="p-2">{{ p.telefono|default:"-" }}</td>
+              <td class="p-2">{% if rol %}{{ rol.name }}{% else %}-{% endif %}</td>
+
+              <td class="p-2">
+                <div class="flex gap-2">
+                  <a href="{% url 'staff_web:edit' p.id %}"
+                     class="px-3 py-1 text-sm bg-amber-700 text-white rounded whitespace-nowrap">
+                    Editar
+                  </a>
+
+                  {% if p.user.id != request.user.id %}
+                    <form method="post"
+                          action="{% url 'staff_web:delete' p.id %}"
+                          onsubmit="return confirm('¿Seguro que deseas DESACTIVAR a este usuario?\n\nNo podrá iniciar sesión hasta que sea reactivado.');">
+                      {% csrf_token %}
+                      <button class="bg-red-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
+                        Desactivar
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="px-3 py-1 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
+                      Tú
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
             </tr>
-          </thead>
-
-          <tbody>
-            {% for p in activos %}
-              {% with rol=p.user.groups.all|first %}
-              <tr class="border-b">
-                <td class="p-2">{{ p.user.username }}</td>
-                <td class="p-2">{{ p.nombre }} {{ p.apellido_paterno }} {{ p.apellido_materno }}</td>
-                <td class="p-2">{{ p.user.email|default:"-" }}</td>
-                <td class="p-2">{{ p.telefono|default:"-" }}</td>
-                <td class="p-2">{% if rol %}{{ rol.name }}{% else %}-{% endif %}</td>
-
-                <td class="p-2">
-                  <div class="flex gap-2">
-
-                    {# ======= EDITAR ======= #}
-                    {% if role_user == "SuperAdmin" %}
-                      <a href="{% url 'staff_web:edit' p.id %}"
-                         class="px-3 py-1 text-sm bg-amber-700 text-white rounded whitespace-nowrap">
-                        Editar
-                      </a>
-                    {% else %}
-                      {% if rol and rol.name == "VendedorPOS" %}
-                        <a href="{% url 'staff_web:edit' p.id %}"
-                           class="px-3 py-1 text-sm bg-amber-700 text-white rounded whitespace-nowrap">
-                          Editar
-                        </a>
-                      {% else %}
-                        <span class="px-3 py-1 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
-                          Protegido
-                        </span>
-                      {% endif %}
-                    {% endif %}
-
-                    {# ======= DESACTIVAR (BORRAR LÓGICO) ======= #}
-                    {% if role_user == "SuperAdmin" %}
-                      {% if p.user.id != request.user.id %}
-                        <form method="post"
-                              action="{% url 'staff_web:delete' p.id %}"
-                              onsubmit="return confirm('¿Seguro que deseas DESACTIVAR a este usuario?\n\nNo podrá iniciar sesión hasta que sea reactivado.');">
-                          {% csrf_token %}
-                          <button class="bg-red-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
-                            Desactivar
-                          </button>
-                        </form>
-                      {% else %}
-                        <span class="px-3 py-1 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
-                          Tú
-                        </span>
-                      {% endif %}
-                    {% else %}
-                      {% if rol and rol.name == "VendedorPOS" %}
-                        {% if p.user.id != request.user.id %}
-                          <form method="post"
-                                action="{% url 'staff_web:delete' p.id %}"
-                                onsubmit="return confirm('¿Seguro que deseas DESACTIVAR a este usuario?\n\nNo podrá iniciar sesión hasta que sea reactivado.');">
-                            {% csrf_token %}
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
-                              Desactivar
-                            </button>
-                          </form>
-                        {% else %}
-                          <span class="px-3 py-1 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
-                            Tú
-                          </span>
-                        {% endif %}
-                      {% endif %}
-                    {% endif %}
-
-                  </div>
-                </td>
-              </tr>
-              {% endwith %}
-            {% empty %}
-              <tr>
-                <td class="p-4 text-gray-500" colspan="6">No hay personal activo.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-
-        </table>
-      </div>
-    </section>
-
-    <!-- PERSONAL INACTIVO -->
-    <section>
-      <h3 class="text-lg font-semibold mb-3">Personal inactivo</h3>
-
-      <div class="bg-white shadow rounded overflow-hidden">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-gray-200">
+            {% endwith %}
+          {% empty %}
             <tr>
-              <th class="p-2">Usuario</th>
-              <th class="p-2">Nombre</th>
-              <th class="p-2">Correo</th>
-              <th class="p-2">Teléfono</th>
-              <th class="p-2">Rol</th>
-              <th class="p-2">Acciones</th>
+              <td class="p-4 text-gray-500" colspan="6">No hay personal activo.</td>
             </tr>
-          </thead>
+          {% endfor %}
+        </tbody>
 
-          <tbody>
-            {% for p in inactivos %}
-              {% with rol=p.user.groups.all|first %}
-              <tr class="border-b">
-                <td class="p-2">{{ p.user.username }}</td>
-                <td class="p-2">{{ p.nombre }} {{ p.apellido_paterno }} {{ p.apellido_materno }}</td>
-                <td class="p-2">{{ p.user.email|default:"-" }}</td>
-                <td class="p-2">{{ p.telefono|default:"-" }}</td>
-                <td class="p-2">{% if rol %}{{ rol.name }}{% else %}-{% endif %}</td>
+      </table>
+    </div>
+  </section>
 
-                <td class="p-2">
-                  <div class="flex gap-2">
+  <!-- PERSONAL INACTIVO -->
+  <section>
+    <h3 class="text-lg font-semibold mb-3">Personal inactivo</h3>
 
-                    {# ======= REACTIVAR ======= #}
-                    {% if role_user == "SuperAdmin" %}
-                      <form method="post"
-                            action="{% url 'staff_web:activate' p.id %}"
-                            onsubmit="return confirm('¿Seguro que deseas REACTIVAR a este usuario?');">
-                        {% csrf_token %}
-                        <button class="bg-green-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
-                          Reactivar
-                        </button>
-                      </form>
-                    {% else %}
-                      {% if rol and rol.name == "VendedorPOS" %}
-                        <form method="post"
-                              action="{% url 'staff_web:activate' p.id %}"
-                              onsubmit="return confirm('¿Seguro que deseas REACTIVAR a este usuario?');">
-                          {% csrf_token %}
-                          <button class="bg-green-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
-                            Reactivar
-                          </button>
-                        </form>
-                      {% else %}
-                        <span class="px-3 py-1 rounded text-xs bg-gray-100 text-gray-600 border border-gray-200 whitespace-nowrap">
-                          Protegido
-                        </span>
-                      {% endif %}
-                    {% endif %}
+    <div class="bg-white shadow rounded overflow-hidden">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2">Usuario</th>
+            <th class="p-2">Nombre</th>
+            <th class="p-2">Correo</th>
+            <th class="p-2">Teléfono</th>
+            <th class="p-2">Rol</th>
+            <th class="p-2">Acciones</th>
+          </tr>
+        </thead>
 
-                  </div>
-                </td>
-              </tr>
-              {% endwith %}
-            {% empty %}
-              <tr>
-                <td class="p-4 text-gray-500" colspan="6">No hay personal inactivo.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
+        <tbody>
+          {% for p in inactivos %}
+            {% with rol=p.user.groups.all|first %}
+            <tr class="border-b">
+              <td class="p-2">{{ p.user.username }}</td>
+              <td class="p-2">{{ p.nombre }} {{ p.apellido_paterno }} {{ p.apellido_materno }}</td>
+              <td class="p-2">{{ p.user.email|default:"-" }}</td>
+              <td class="p-2">{{ p.telefono|default:"-" }}</td>
+              <td class="p-2">{% if rol %}{{ rol.name }}{% else %}-{% endif %}</td>
 
-        </table>
-      </div>
-    </section>
+              <td class="p-2">
+                <form method="post"
+                      action="{% url 'staff_web:activate' p.id %}"
+                      onsubmit="return confirm('¿Seguro que deseas REACTIVAR a este usuario?');">
+                  {% csrf_token %}
+                  <button class="bg-green-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
+                    Reactivar
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td class="p-4 text-gray-500" colspan="6">No hay personal inactivo.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
 
-  </main>
-</div>
+      </table>
+    </div>
+  </section>
 
-</body>
-</html>
+{% endblock %}

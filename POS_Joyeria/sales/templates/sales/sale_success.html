@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Venta {{ sale.folio }}</title>
+  <link href="{% static 'dist/output.css' %}" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-3xl">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">
+            {% if back_label and back_label != "Volver a ventas" %}
+              Detalle de venta
+            {% else %}
+              Venta realizada
+            {% endif %}
+          </h1>
+          <p class="text-sm text-gray-500">Folio: <span class="font-semibold">{{ sale.folio }}</span></p>
+        </div>
+
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
+          Pagada
+        </span>
+      </div>
+
+      <!-- Card principal -->
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+
+        <!-- Resumen -->
+        <div class="p-5 border-b">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="rounded border bg-gray-50 p-3">
+              <p class="text-xs text-gray-500">Folio</p>
+              <p class="text-lg font-bold text-gray-900">{{ sale.folio }}</p>
+            </div>
+
+            <div class="rounded border bg-gray-50 p-3">
+              <p class="text-xs text-gray-500">Total</p>
+              <p class="text-lg font-bold text-gray-900">${{ sale.total }}</p>
+            </div>
+
+            <div class="rounded border bg-gray-50 p-3">
+              <p class="text-xs text-gray-500">Método de pago</p>
+              <p class="text-lg font-bold text-gray-900">
+                {% if sale.payment_method == "CASH" %}
+                  Efectivo
+                {% elif sale.payment_method == "CARD" %}
+                  Tarjeta
+                {% elif sale.payment_method == "TRANSFER" %}
+                  Transferencia
+                {% else %}
+                  -
+                {% endif %}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="rounded border p-3">
+              <p class="text-xs text-gray-500">Cliente</p>
+              <p class="font-semibold text-gray-900">{{ cliente_display }}</p>
+              {% if cliente_phone %}
+                <p class="text-sm text-gray-600 mt-1">{{ cliente_phone }}</p>
+              {% endif %}
+            </div>
+
+            <div class="rounded border p-3">
+              <p class="text-xs text-gray-500">Fecha</p>
+              <p class="font-semibold text-gray-900">
+                {{ sale.created_at|date:"d/m/Y H:i" }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de productos -->
+        <div class="p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900">Productos</h2>
+            <span class="text-sm text-gray-500">Items: {{ sale.items.count }}</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-200">
+                <tr>
+                  <th class="p-2 text-left">Producto</th>
+                  <th class="p-2 text-center">Cant.</th>
+                  <th class="p-2 text-right">Precio unit.</th>
+                  <th class="p-2 text-right">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in sale.items.all %}
+                  <tr class="border-t">
+                    <td class="p-2">
+                      <div class="font-semibold text-gray-900">{{ item.product_name }}</div>
+                    </td>
+                    <td class="p-2 text-center">{{ item.qty }}</td>
+                    <td class="p-2 text-right">${{ item.unit_price }}</td>
+                    <td class="p-2 text-right font-semibold">${{ item.line_total }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="4" class="p-6 text-center text-gray-400">
+                      No hay productos en esta venta.
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totales -->
+          <div class="mt-5 flex justify-end">
+            <div class="w-full max-w-sm text-sm space-y-2">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Subtotal</span>
+                <span class="font-semibold">${{ sale.subtotal }}</span>
+              </div>
+
+              <div class="flex justify-between">
+                <span class="text-gray-500">Descuento</span>
+                <span class="font-semibold">-${{ sale.discount_amount }}</span>
+              </div>
+
+              <div class="border-t pt-2 flex justify-between text-base">
+                <span class="font-semibold">Total</span>
+                <span class="font-bold">${{ sale.total }}</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-sm pt-2">
+                <div class="rounded border p-2 bg-gray-50">
+                  <p class="text-xs text-gray-500">Pagado</p>
+                  <p class="font-semibold">${{ sale.amount_paid }}</p>
+                </div>
+                <div class="rounded border p-2 bg-gray-50">
+                  <p class="text-xs text-gray-500">Cambio</p>
+                  <p class="font-semibold">${{ sale.change_amount }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Acciones -->
+<div class="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+  <a href="{{ back_url|default:'/' }}"
+     class="inline-flex justify-center items-center px-4 py-2 rounded border bg-white hover:bg-gray-50 text-gray-900">
+    {% if back_label %}{{ back_label }}{% else %}Volver{% endif %}
+  </a>
+</div>
+
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
