@@ -12,6 +12,7 @@ from .web_views import (
     client_quick,
     client_clear,
     sales_list,
+    cancel_sale,
 )
 app_name = "sales"
 urlpatterns = [
@@ -31,6 +32,8 @@ urlpatterns = [
     path("success/<int:sale_id>/", sale_success, name="success"),
     #Listado ventas
     path("ventas/", sales_list, name="ventas_list"),
-    #Detalle desde listado (reusa sale_success.html)
+    #Detalle desde listado
     path("ventas/<int:sale_id>/", sale_success, name="detail"),
+    #Cancelar una venta
+    path("ventas/<int:sale_id>/cancel/", cancel_sale, name="cancel"),
 ]

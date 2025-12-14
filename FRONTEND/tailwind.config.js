@@ -1,10 +1,10 @@
 module.exports = {
   content: [
     "./*.html",
-    "./js/**/*.js"
+    "./html/**/*.html",
+    "./js/**/*.js",
+    "../POS_Joyeria/**/templates/**/*.html",
   ],
-  theme: {
-    extend: {},
-  },
+  theme: { extend: {} },
   plugins: [],
 }

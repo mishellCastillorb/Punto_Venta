@@ -13,35 +13,34 @@
     </div>
 
     <!-- Filtros -->
-<div class="bg-white shadow rounded p-4">
-  <form method="get" class="flex flex-col md:flex-row md:items-end gap-3">
-    <div class="w-full md:w-64">
-      <label class="block text-xs text-gray-500 mb-1">Vendedor (username)</label>
-      <input type="text" name="vendedor" value="{{ filters.vendedor }}"
-             class="w-full border rounded p-2" placeholder="Ej: josej">
-    </div>
+    <div class="bg-white shadow rounded p-4">
+      <form method="get" class="flex flex-col md:flex-row md:items-end gap-3">
+        <div class="w-full md:w-64">
+          <label class="block text-xs text-gray-500 mb-1">Vendedor (username)</label>
+          <input type="text" name="vendedor" value="{{ filters.vendedor }}"
+                 class="w-full border rounded p-2" placeholder="Ej: josej">
+        </div>
 
-    <div class="w-full md:w-56">
-      <label class="block text-xs text-gray-500 mb-1">Periodo</label>
-      <select name="periodo" class="w-full border rounded p-2">
-        <option value="hoy" {% if filters.periodo == "hoy" %}selected{% endif %}>Hoy</option>
-        <option value="ayer" {% if filters.periodo == "ayer" %}selected{% endif %}>Ayer</option>
-        <option value="semana" {% if filters.periodo == "semana" %}selected{% endif %}>Esta semana</option>
-        <option value="mes" {% if filters.periodo == "mes" %}selected{% endif %}>Este mes</option>
-      </select>
-    </div>
+        <div class="w-full md:w-56">
+          <label class="block text-xs text-gray-500 mb-1">Periodo</label>
+          <select name="periodo" class="w-full border rounded p-2">
+            <option value="hoy" {% if filters.periodo == "hoy" %}selected{% endif %}>Hoy</option>
+            <option value="ayer" {% if filters.periodo == "ayer" %}selected{% endif %}>Ayer</option>
+            <option value="semana" {% if filters.periodo == "semana" %}selected{% endif %}>Esta semana</option>
+            <option value="mes" {% if filters.periodo == "mes" %}selected{% endif %}>Este mes</option>
+          </select>
+        </div>
 
-    <div class="flex gap-2">
-      <button class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded" type="submit">
-        Filtrar
-      </button>
-      <a href="{% url 'sales:ventas_list' %}" class="border bg-white hover:bg-gray-50 px-4 py-2 rounded">
-        Limpiar
-      </a>
+        <div class="flex gap-2">
+          <button class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded" type="submit">
+            Filtrar
+          </button>
+          <a href="{% url 'sales:ventas_list' %}" class="border bg-white hover:bg-gray-50 px-4 py-2 rounded">
+            Limpiar
+          </a>
+        </div>
+      </form>
     </div>
-  </form>
-</div>
-
 
     <!-- Tabla -->
     <div class="bg-white shadow rounded overflow-hidden">
@@ -53,27 +52,60 @@
               <th class="p-2 text-left">Vendedor</th>
               <th class="p-2 text-left">Fecha y hora</th>
               <th class="p-2 text-right">Total</th>
+              <th class="p-2 text-left">Estado</th>
               <th class="p-2 text-center">Acciones</th>
             </tr>
           </thead>
 
           <tbody>
             {% for s in sales %}
-              <tr class="border-t">
+              <tr class="border-t {% if s.status == 'CANCELLED' %}bg-gray-100 text-gray-500{% endif %}">
                 <td class="p-2 font-semibold">{{ s.folio }}</td>
                 <td class="p-2">{% if s.user %}{{ s.user.username }}{% else %}-{% endif %}</td>
                 <td class="p-2">{{ s.created_at|date:"d/m/Y H:i" }}</td>
                 <td class="p-2 text-right font-semibold">${{ s.total }}</td>
+
+                <td class="p-2">
+                  {% if s.status == "PAID" %}
+                    <span class="inline-flex px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-semibold">
+                      Pagada
+                    </span>
+                  {% elif s.status == "CANCELLED" %}
+                    <span class="inline-flex px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-semibold">
+                      Cancelada
+                    </span>
+                  {% else %}
+                    <span class="inline-flex px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">
+                      Abierta
+                    </span>
+                  {% endif %}
+                </td>
+
                 <td class="p-2 text-center">
-                  <a href="{% url 'sales:detail' s.id %}?from=list"
-                     class="inline-flex bg-gray-900 hover:bg-gray-800 text-white px-3 py-1 rounded">
-                    Detalles
-                  </a>
+                  <div class="inline-flex items-center gap-2 justify-center">
+                    <a href="{% url 'sales:detail' s.id %}?from=list"
+                       class="inline-flex bg-gray-900 hover:bg-gray-800 text-white px-3 py-1 rounded">
+                      Detalles
+                    </a>
+
+                    {% if request.user|in_group:"AdminPOS" and s.status != "CANCELLED" %}
+                      <form method="post"
+                            action="{% url 'sales:cancel' s.id %}"
+                            onsubmit="return confirm('¿Cancelar esta venta? Se regresará el stock.');"
+                            class="m-0">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="inline-flex bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
+                          Cancelar
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="p-6 text-center text-gray-400">No hay ventas.</td>
+                <td colspan="6" class="p-6 text-center text-gray-400">No hay ventas.</td>
               </tr>
             {% endfor %}
           </tbody>

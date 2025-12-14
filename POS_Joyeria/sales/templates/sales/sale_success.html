@@ -25,9 +25,19 @@
           <p class="text-sm text-gray-500">Folio: <span class="font-semibold">{{ sale.folio }}</span></p>
         </div>
 
-        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
-          Pagada
-        </span>
+        {% if sale.status == "PAID" %}
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
+            Pagada
+          </span>
+        {% elif sale.status == "CANCELLED" %}
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-200 text-gray-800 text-sm font-semibold">
+            Cancelada
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold">
+            Abierta
+          </span>
+        {% endif %}
       </div>
 
       <!-- Card principal -->
@@ -150,13 +160,12 @@
           </div>
 
           <!-- Acciones -->
-<div class="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
-  <a href="{{ back_url|default:'/' }}"
-     class="inline-flex justify-center items-center px-4 py-2 rounded border bg-white hover:bg-gray-50 text-gray-900">
-    {% if back_label %}{{ back_label }}{% else %}Volver{% endif %}
-  </a>
-</div>
-
+          <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+            <a href="{{ back_url|default:'/' }}"
+               class="inline-flex justify-center items-center px-4 py-2 rounded border bg-white hover:bg-gray-50 text-gray-900">
+              {% if back_label %}{{ back_label }}{% else %}Volver{% endif %}
+            </a>
+          </div>
 
         </div>
       </div>

@@ -1,11 +1,9 @@
 from decimal import Decimal
 from datetime import timedelta
-
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-
 from client.models import Client
 from products.models import Category, Material, Product
 from suppliers.models import Supplier
@@ -595,3 +593,90 @@ class SalesWebViewsTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, "V000001")
         self.assertNotContains(res, "V000002")
+
+
+class SalesCancelTest(TestCase):
+    def setUp(self):
+        self.grp_admin = Group.objects.create(name="AdminPOS")
+        self.grp_vendedor = Group.objects.create(name="VendedorPOS")
+
+        self.admin = User.objects.create_user(username="admin1", password="12345678")
+        self.admin.groups.add(self.grp_admin)
+
+        self.vend = User.objects.create_user(username="vend1", password="12345678")
+        self.vend.groups.add(self.grp_vendedor)
+
+        self.cat = Category.objects.create(name="Anillos")
+        self.mat = Material.objects.create(name="Plata", purity="925")
+        self.sup = Supplier.objects.create(name="Prov", code="P1", phone="555", email="p@test.com")
+
+        self.p1 = Product.objects.create(
+            name="Anillo Plata",
+            code="ANP01",
+            category=self.cat,
+            purchase_price=10,
+            sale_price=Decimal("100.00"),
+            weight=1,
+            stock=5,
+            supplier=self.sup,
+            material=self.mat,
+        )
+
+        self.client_reg = Client.objects.create(
+            name="Juan",
+            apellido_paterno="Pérez",
+            apellido_materno="Gómez",
+            phone="5559998888",
+            email="juan@test.com",
+            rfc="ABC123",
+            is_active=True,
+        )
+
+        self.sale = Sale.objects.create(
+            user=self.vend,
+            status=Sale.Status.PAID,
+            subtotal=Decimal("200.00"),
+            discount_amount=Decimal("0.00"),
+            total=Decimal("200.00"),
+            payment_method=Sale.PaymentMethod.CASH,
+            amount_paid=Decimal("200.00"),
+            change_amount=Decimal("0.00"),
+            client=self.client_reg,
+            folio="V000123",
+        )
+        SaleItem.objects.create(
+            sale=self.sale,
+            product=self.p1,
+            product_name=self.p1.name,
+            unit_price=Decimal("100.00"),
+            qty=2,
+            line_total=Decimal("200.00"),
+        )
+
+    def test_cancel_sale_admin_cancela_y_regresa_stock(self):
+        self.client.force_login(self.admin)
+
+        stock_before = Product.objects.get(id=self.p1.id).stock
+
+        res = self.client.post(reverse("sales:cancel", args=[self.sale.id]))
+        self.assertEqual(res.status_code, 302)
+
+        self.sale.refresh_from_db()
+        self.assertEqual(self.sale.status, Sale.Status.CANCELLED)
+
+        p = Product.objects.get(id=self.p1.id)
+        self.assertEqual(p.stock, stock_before + 2)
+
+    def test_cancel_sale_vendedor_no_puede(self):
+        self.client.force_login(self.vend)
+
+        stock_before = Product.objects.get(id=self.p1.id).stock
+
+        res = self.client.post(reverse("sales:cancel", args=[self.sale.id]))
+        self.assertIn(res.status_code, (302, 403))
+
+        self.sale.refresh_from_db()
+        self.assertEqual(self.sale.status, Sale.Status.PAID)
+
+        p = Product.objects.get(id=self.p1.id)
+        self.assertEqual(p.stock, stock_before)

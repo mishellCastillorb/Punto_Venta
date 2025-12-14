@@ -642,3 +642,49 @@ def sales_list(request):
         "sales": qs[:500],
         "filters": {"vendedor": vendedor, "periodo": periodo},
     })
+
+@require_POST
+@role_required(["AdminPOS"])
+def cancel_sale(request, sale_id: int):
+    sale = get_object_or_404(
+        Sale.objects.select_related("user").prefetch_related("items__product"),
+        id=sale_id
+    )
+
+    if sale.status == Sale.Status.CANCELLED:
+        messages.info(request, "Esta venta ya estaba cancelada.")
+        return redirect(reverse("sales:ventas_list"))
+
+    if sale.status != Sale.Status.PAID:
+        messages.error(request, "Solo se pueden cancelar ventas pagadas.")
+        return redirect(reverse("sales:ventas_list"))
+
+    try:
+        with transaction.atomic():
+            sale = Sale.objects.select_for_update().get(id=sale_id)
+
+            if sale.status == Sale.Status.CANCELLED:
+                messages.info(request, "Esta venta ya estaba cancelada.")
+                return redirect(reverse("sales:ventas_list"))
+
+            items = list(SaleItem.objects.select_related("product").select_for_update().filter(sale=sale))
+
+            # Regresar stock por cada item
+            for it in items:
+                p = it.product
+                stock = _get_product_stock(p)
+
+                if stock is not None:
+                    new_stock = int(stock) + int(it.qty)
+                    stock_field = _set_product_stock(p, new_stock)
+                    if stock_field:
+                        p.save(update_fields=[stock_field])
+
+            sale.status = Sale.Status.CANCELLED
+            sale.save(update_fields=["status"])
+
+        messages.success(request, f"Venta {sale.folio or sale.id} cancelada y stock restaurado.")
+    except Exception:
+        messages.error(request, "No se pudo cancelar la venta. Intenta de nuevo.")
+
+    return redirect(reverse("sales:ventas_list"))
