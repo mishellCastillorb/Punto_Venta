@@ -27,23 +27,17 @@ def cash_status(request):
         created_at__lte=timezone.now()
     )
 
-    # Si NO es admin → solo ve sus ventas
     if not request.user.groups.filter(name="AdminPOS").exists():
         sales = sales.filter(user=request.user)
 
-    # Resumen general
     resumen = sales.aggregate(
         total=Sum("total"),
         cantidad=Count("id")
     )
-
-    # 🔥 Agrupado por método de pago (RAW)
     por_pago_raw = sales.values("payment_method").annotate(
         total=Sum("total"),
         cantidad=Count("id")
     )
-
-    # 🔥 Traducido a etiquetas legibles
     por_pago = []
     for p in por_pago_raw:
         por_pago.append({
@@ -55,7 +49,6 @@ def cash_status(request):
             "cantidad": p["cantidad"],
         })
 
-    # Por vendedor
     por_vendedor = sales.values(
         "user__username"
     ).annotate(
@@ -69,12 +62,11 @@ def cash_status(request):
         {
             "cash": cash,
             "resumen": resumen,
-            "por_pago": por_pago,        # 👈 ya procesado
+            "por_pago": por_pago,
             "por_vendedor": por_vendedor,
         }
     )
 
-#Abir caja
 @role_required(["AdminPOS", "VendedorPOS"])
 def open_cash(request):
     if CashRegister.objects.filter(is_closed=False).exists():

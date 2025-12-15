@@ -6,14 +6,12 @@ from django.urls import reverse
 
 
 def post_login_redirect(request):
-    # Raíz "/" -> si no hay sesión manda al login; si hay sesión manda a productos
     if not request.user.is_authenticated:
         return redirect("login_pos")
     return redirect("products_web:list")
 
 
 def login_pos(request):
-    # Si ya está logueado, no lo regreses al login
     if request.user.is_authenticated:
         return redirect("products_web:list")
 
@@ -30,14 +28,12 @@ def login_pos(request):
             messages.error(request, "Usuario o contraseña incorrectos.")
             return render(request, "home/login.html", {"next": next_url})
 
-        # Limitar acceso al POS solo a staff
         if not user.is_staff:
             messages.error(request, "No tienes acceso al POS.")
             return render(request, "home/login.html", {"next": next_url})
 
         login(request, user)
 
-        # Si venía de una ruta protegida, regresarlo ahí
         if next_url and url_has_allowed_host_and_scheme(
             next_url,
             allowed_hosts={request.get_host()},

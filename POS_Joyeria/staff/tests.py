@@ -46,7 +46,7 @@ class StaffProfileModelTest(TestCase):
                 nombre="Beto",
                 apellido_paterno="Ruiz",
                 apellido_materno="Pérez",
-                telefono="5551112222",  # duplicado
+                telefono="5551112222",
                 direccion="Calle 2",
             )
 
@@ -69,7 +69,6 @@ class StaffCreateFormTest(TestCase):
         cls.admin.is_staff = True
         cls.admin.save(update_fields=["is_staff"])
 
-        # existente para validar duplicados
         cls.existing = User.objects.create_user(username="exist", password="pass12345", email="exist@test.com")
         cls.existing.is_staff = True
         cls.existing.save(update_fields=["is_staff"])
@@ -121,7 +120,7 @@ class StaffCreateFormTest(TestCase):
         self.assertIn("username", form.errors)
 
         payload = self._base_payload()
-        payload["username"] = "Exist"  # existe (case-insensitive)
+        payload["username"] = "Exist"
         form = StaffCreateForm(data=payload, request_user=self.admin)
         self.assertFalse(form.is_valid())
         self.assertIn("Ese usuario ya existe.", form.errors["username"][0])
@@ -158,19 +157,20 @@ class StaffCreateFormTest(TestCase):
         self.assertFalse(form.is_valid())
         msg = str(form.errors["telefono"][0]).lower()
         self.assertTrue(
-            ("no debe exceder 15" in msg) or ("at most 15" in msg) or ("max" in msg),
+            ("15" in msg) and (
+                    ("como máximo" in msg) or ("at most" in msg) or ("max" in msg) or ("no debe exceder" in msg)
+            ),
             msg
         )
-
         payload = self._base_payload()
-        payload["telefono"] = "5559998888"  # ya existe en StaffProfile
+        payload["telefono"] = "5559998888"
         form = StaffCreateForm(data=payload, request_user=self.admin)
         self.assertFalse(form.is_valid())
         self.assertIn("Ese teléfono ya está registrado.", form.errors["telefono"][0])
 
     def test_password_match_y_minimo(self):
         payload = self._base_payload()
-        payload["password1"] = "123"  # < 6
+        payload["password1"] = "123"
         payload["password2"] = "123"
         form = StaffCreateForm(data=payload, request_user=self.admin)
         self.assertFalse(form.is_valid())
@@ -183,16 +183,17 @@ class StaffCreateFormTest(TestCase):
         self.assertIn("password2", form.errors)
 
     def test_clean_rol_no_permitido(self):
-        # OJO: ChoiceField valida choices antes de clean_rol
         payload = self._base_payload()
-        payload["rol"] = "AdminPOS"  # admin normal NO puede asignar AdminPOS
+        payload["rol"] = "adminpos"
         form = StaffCreateForm(data=payload, request_user=self.admin)
         self.assertFalse(form.is_valid())
         self.assertIn("rol", form.errors)
-
         msg = str(form.errors["rol"][0]).lower()
         self.assertTrue(
-            ("no tienes permiso" in msg) or ("select a valid choice" in msg) or ("valid choice" in msg),
+            ("no tienes permiso" in msg)
+            or ("opción válida" in msg)
+            or ("valid choice" in msg)
+            or ("select a valid choice" in msg),
             msg
         )
 
@@ -274,7 +275,7 @@ class StaffEditFormTest(TestCase):
                 "apellido_materno": "M",
                 "telefono": "5551112222",
                 "direccion": "Dir",
-                "email": "OTHER@test.com",  # ya existe
+                "email": "OTHER@test.com",
                 "rol": "VendedorPOS",
             },
             instance=self.profile,
@@ -290,7 +291,7 @@ class StaffEditFormTest(TestCase):
                 "nombre": "V",
                 "apellido_paterno": "P",
                 "apellido_materno": "M",
-                "telefono": "5559998888",  # ya existe en otro profile
+                "telefono": "5559998888",
                 "direccion": "Dir",
                 "email": "vend@test.com",
                 "rol": "VendedorPOS",

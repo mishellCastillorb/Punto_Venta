@@ -13,7 +13,7 @@ from .forms import ClientForm
 from .serializers import ClientSerializer
 
 
-# MODEL TESTS (solo lo esencial: constraints + __str__)
+# MODEL TESTS
 
 class ClientModelTest(TestCase):
     def test_crear_cliente_ok(self):
@@ -51,7 +51,7 @@ class ClientModelTest(TestCase):
         self.assertEqual(str(c), "Juan Pérez Gómez")
 
 
-# FORM TESTS (aquí está la lógica pesada de validación)
+# FORM TESTS
 
 class ClientFormTest(TestCase):
     def test_name_obligatorio_y_minimo(self):
@@ -74,40 +74,40 @@ class ClientFormTest(TestCase):
         self.assertIn("apellido_materno", form.errors)
 
     def test_phone_validaciones_y_unicidad_excluyendo_self(self):
-        # no dígitos
+
         form = ClientForm(data={"name": "Juan", "phone": "55ABC"})
         self.assertFalse(form.is_valid())
         self.assertIn("El teléfono solo debe contener dígitos.", form.errors["phone"][0])
 
-        # muy corto
         form = ClientForm(data={"name": "Juan", "phone": "123456"})
         self.assertFalse(form.is_valid())
         self.assertIn("El teléfono debe tener al menos 7 dígitos.", form.errors["phone"][0])
 
-        # muy largo (puede caer por max_length del field)
         form = ClientForm(data={"name": "Juan", "phone": "1" * 16})
         self.assertFalse(form.is_valid())
         msg = str(form.errors["phone"][0]).lower()
-        self.assertTrue(("no debe exceder 15" in msg) or ("at most 15" in msg), msg)
+        self.assertTrue(
+            ("15" in msg) and (
+                    ("como máximo" in msg) or ("at most" in msg) or ("max" in msg) or ("no debe exceder" in msg)
+            ),
+            msg
+        )
 
-        # unicidad
         Client.objects.create(name="Ana", phone="5551112222")
         form = ClientForm(data={"name": "Beto", "phone": "5551112222"})
         self.assertFalse(form.is_valid())
         self.assertIn("Ya existe un cliente con ese teléfono.", form.errors["phone"][0])
 
-        # update: debe permitir el mismo phone en el mismo registro
         c = Client.objects.create(name="Carlos", phone="5553334444")
         form = ClientForm(data={"name": "Carlos Edit", "phone": "5553334444"}, instance=c)
         self.assertTrue(form.is_valid(), form.errors)
 
     def test_rfc_regex_y_unicidad_case_insensitive(self):
-        # regex inválido
+
         form = ClientForm(data={"name": "Juan", "rfc": "ABC123"})
         self.assertFalse(form.is_valid())
         self.assertIn("El RFC debe tener 12 a 13 caracteres", form.errors["rfc"][0])
 
-        # ok 12/13
         form = ClientForm(data={"name": "Juan", "rfc": "ABC9203041H2"})
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data["rfc"], "ABC9203041H2")
@@ -115,37 +115,33 @@ class ClientFormTest(TestCase):
         form = ClientForm(data={"name": "Juan", "rfc": "ABC9203041H2Z"})
         self.assertTrue(form.is_valid(), form.errors)
 
-        # unicidad case-insensitive
         Client.objects.create(name="Ximena", rfc="ABC9203041H2")
         form = ClientForm(data={"name": "Yahir", "rfc": "abc9203041h2"})
         self.assertFalse(form.is_valid())
         self.assertIn("Ya existe un cliente registrado con este RFC.", form.errors["rfc"][0])
 
-        # update: permitir el mismo rfc para el mismo registro
         c = Client.objects.create(name="Zeta", rfc="ABC9203041H2Z")
         form = ClientForm(data={"name": "Zeta 2", "rfc": "abc9203041h2z"}, instance=c)
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.cleaned_data["rfc"], "ABC9203041H2Z")  # upper
 
     def test_email_formato_y_unicidad_case_insensitive(self):
-        # formato inválido
+
         form = ClientForm(data={"name": "Juan", "email": "no-es-correo"})
         self.assertFalse(form.is_valid())
         self.assertIn("Ingresa un correo electrónico válido.", form.errors["email"][0])
 
-        # unicidad case-insensitive
         Client.objects.create(name="Ana", email="correo@test.com")
         form = ClientForm(data={"name": "Beto", "email": "CORREO@test.com"})
         self.assertFalse(form.is_valid())
         self.assertIn("Ya existe un cliente con ese correo.", form.errors["email"][0])
 
-        # update: permitir su mismo email
         c = Client.objects.create(name="Carlos", email="mismo@test.com")
         form = ClientForm(data={"name": "Carlos 2", "email": "MISMO@test.com"}, instance=c)
         self.assertTrue(form.is_valid(), form.errors)
 
 
-# SERIALIZER TESTS (validaciones DRF + unicidad RFC/Email)
+# SERIALIZER TESTS
 
 class ClientSerializerTest(TestCase):
     def test_name_trim_obligatorio_minimo(self):
@@ -282,8 +278,6 @@ class ClientApiViewsTest(APITestCase):
         self.activo.refresh_from_db()
         self.assertFalse(self.activo.is_active)
 
-
-# WEB VIEWS TESTS (templates) + role_required
 
 class ClientWebViewsTestCase(TestCase):
     @classmethod

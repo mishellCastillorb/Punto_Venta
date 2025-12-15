@@ -4,6 +4,8 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from unittest.mock import patch
+
 from client.models import Client
 from products.models import Category, Material, Product
 from suppliers.models import Supplier
@@ -595,6 +597,95 @@ class SalesWebViewsTest(TestCase):
         self.assertNotContains(res, "V000002")
 
 
+    def test_add_to_ticket_producto_no_existe_redirige_pos(self):
+        self._login(self.user_vendedor)
+        res = self.client.post(reverse("sales:add", args=[999999]), data={"q": ""})
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse("sales:pos"), res["Location"])
+
+    def test_add_to_ticket_con_q_redirige_con_query(self):
+        self._login(self.user_vendedor)
+        self._set_ticket(items={})
+        res = self.client.post(reverse("sales:add", args=[self.p1.id]), data={"q": "AN"})
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("?q=AN", res["Location"])
+
+    def test_ajax_update_sin_ticket_crea_ticket_y_responde_ok(self):
+        self._login(self.user_vendedor)
+        s = self.client.session
+        if SESSION_KEY in s:
+            del s[SESSION_KEY]
+            s.save()
+
+        res = self.client.post(reverse("sales:ajax_update"), data={
+            "descuento_pct": "0",
+            "metodo_pago": "CASH",
+            "cantidad_pagada": "0",
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()["ok"])
+        self.assertIn(SESSION_KEY, self.client.session)
+
+    def test_client_quick_con_ticket_invalido_inicializa(self):
+        self._login(self.user_vendedor)
+        s = self.client.session
+        s[SESSION_KEY] = "no-dict"
+        s.save()
+
+        res = self.client.post(reverse("sales:client_quick"), data={"name": "X", "phone": "555", "q": ""})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(self.client.session[SESSION_KEY]["cliente"]["name"], "X")
+
+    def test_client_clear_con_ticket_invalido_inicializa(self):
+        self._login(self.user_vendedor)
+        s = self.client.session
+        s[SESSION_KEY] = "no-dict"
+        s.save()
+
+        res = self.client.post(reverse("sales:client_clear"), data={"q": ""})
+        self.assertEqual(res.status_code, 302)
+        self.assertIsNone(self.client.session[SESSION_KEY]["cliente"])
+
+    def test_client_select_con_ticket_invalido_inicializa(self):
+        self._login(self.user_vendedor)
+        s = self.client.session
+        s[SESSION_KEY] = "no-dict"
+        s.save()
+
+        res = self.client.post(reverse("sales:client_select", args=[self.client_reg.id]), data={"q": ""})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(self.client.session[SESSION_KEY]["cliente"]["id"], self.client_reg.id)
+
+    def test_sale_success_quick_client_back_to_pos(self):
+        self._login(self.user_vendedor)
+
+        sale = Sale.objects.create(
+            user=self.user_vendedor,
+            status=Sale.Status.PAID,
+            subtotal=Decimal("100.00"),
+            discount_amount=Decimal("0.00"),
+            total=Decimal("100.00"),
+            payment_method=Sale.PaymentMethod.CASH,
+            amount_paid=Decimal("100.00"),
+            change_amount=Decimal("0.00"),
+            quick_client_name="Rápido",
+            quick_client_phone="555",
+            folio="V009999",
+        )
+        SaleItem.objects.create(
+            sale=sale,
+            product=self.p1,
+            product_name=self.p1.name,
+            unit_price=Decimal("100.00"),
+            qty=1,
+            line_total=Decimal("100.00"),
+        )
+
+        res = self.client.get(reverse("sales:success", args=[sale.id]))  # sin ?from=list
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "V009999")
+
+
 class SalesCancelTest(TestCase):
     def setUp(self):
         self.grp_admin = Group.objects.create(name="AdminPOS")
@@ -680,3 +771,48 @@ class SalesCancelTest(TestCase):
 
         p = Product.objects.get(id=self.p1.id)
         self.assertEqual(p.stock, stock_before)
+
+
+    def test_cancel_sale_ya_estaba_cancelada(self):
+        self.client.force_login(self.admin)
+        self.sale.status = Sale.Status.CANCELLED
+        self.sale.save(update_fields=["status"])
+
+        stock_before = Product.objects.get(id=self.p1.id).stock
+        res = self.client.post(reverse("sales:cancel", args=[self.sale.id]))
+        self.assertEqual(res.status_code, 302)
+
+        self.sale.refresh_from_db()
+        self.assertEqual(self.sale.status, Sale.Status.CANCELLED)
+        self.assertEqual(Product.objects.get(id=self.p1.id).stock, stock_before)
+
+    def test_cancel_sale_no_es_paid(self):
+        self.client.force_login(self.admin)
+
+        try:
+            not_paid = Sale.Status.DRAFT
+        except Exception:
+            not_paid = Sale.Status.PENDING if hasattr(Sale.Status, "PENDING") else Sale.Status.CANCELLED
+
+        self.sale.status = not_paid
+        self.sale.save(update_fields=["status"])
+
+        stock_before = Product.objects.get(id=self.p1.id).stock
+        res = self.client.post(reverse("sales:cancel", args=[self.sale.id]))
+        self.assertEqual(res.status_code, 302)
+
+        self.sale.refresh_from_db()
+        self.assertEqual(self.sale.status, not_paid)
+        self.assertEqual(Product.objects.get(id=self.p1.id).stock, stock_before)
+
+    def test_cancel_sale_exception_cae_en_except(self):
+        self.client.force_login(self.admin)
+
+        with patch("sales.web_views.transaction.atomic", side_effect=Exception("boom")):
+            stock_before = Product.objects.get(id=self.p1.id).stock
+            res = self.client.post(reverse("sales:cancel", args=[self.sale.id]))
+            self.assertEqual(res.status_code, 302)
+
+            self.sale.refresh_from_db()
+            self.assertEqual(self.sale.status, Sale.Status.PAID)
+            self.assertEqual(Product.objects.get(id=self.p1.id).stock, stock_before)

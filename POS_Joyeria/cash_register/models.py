@@ -53,7 +53,7 @@ class CashRegister(models.Model):
         null=True,
         blank=True
     )
-    #Si es 0, todo esta ok
+    #Si es 0,
     difference = models.DecimalField(
         max_digits=12,
         decimal_places=2,
