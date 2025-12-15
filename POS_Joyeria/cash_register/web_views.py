@@ -1,10 +1,17 @@
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.contrib import messages
-
+from django.db.models import Sum, Count
 from sales.models import Sale
 from .models import CashRegister
 from utils.roles import role_required
+from decimal import Decimal
+
+PAYMENT_LABELS = {
+    "CASH": "Efectivo",
+    "CARD": "Tarjeta",
+    "TRANSFER": "Transferencia",
+}
 
 #Estado de la caja (abierta/cerrada)
 @role_required(["AdminPOS", "VendedorPOS"])
@@ -14,11 +21,59 @@ def cash_status(request):
     if not cash:
         return redirect("cash_register_web:open")
 
+    sales = Sale.objects.filter(
+        status=Sale.Status.PAID,
+        created_at__gte=cash.opened_at,
+        created_at__lte=timezone.now()
+    )
+
+    # Si NO es admin → solo ve sus ventas
+    if not request.user.groups.filter(name="AdminPOS").exists():
+        sales = sales.filter(user=request.user)
+
+    # Resumen general
+    resumen = sales.aggregate(
+        total=Sum("total"),
+        cantidad=Count("id")
+    )
+
+    # 🔥 Agrupado por método de pago (RAW)
+    por_pago_raw = sales.values("payment_method").annotate(
+        total=Sum("total"),
+        cantidad=Count("id")
+    )
+
+    # 🔥 Traducido a etiquetas legibles
+    por_pago = []
+    for p in por_pago_raw:
+        por_pago.append({
+            "label": PAYMENT_LABELS.get(
+                p["payment_method"],
+                p["payment_method"]
+            ),
+            "total": p["total"],
+            "cantidad": p["cantidad"],
+        })
+
+    # Por vendedor
+    por_vendedor = sales.values(
+        "user__username"
+    ).annotate(
+        total=Sum("total"),
+        cantidad=Count("id")
+    )
+
     return render(
         request,
         "cash_register/status.html",
-        {"cash": cash}
+        {
+            "cash": cash,
+            "resumen": resumen,
+            "por_pago": por_pago,        # 👈 ya procesado
+            "por_vendedor": por_vendedor,
+        }
     )
+
 #Abir caja
 @role_required(["AdminPOS", "VendedorPOS"])
 def open_cash(request):
@@ -54,14 +109,38 @@ def close_cash(request):
         created_at__lte=timezone.now()
     )
 
-    cash_total = sum(s.total for s in sales if s.payment_method == "CASH")
-    card_total = sum(s.total for s in sales if s.payment_method == "CARD")
-    transfer_total = sum(s.total for s in sales if s.payment_method == "TRANSFER")
-    total_sales = sum(s.total for s in sales)
+    cash_total = sum(
+        (s.total for s in sales if s.payment_method == "CASH"),
+        Decimal("0")
+    )
+    card_total = sum(
+        (s.total for s in sales if s.payment_method == "CARD"),
+        Decimal("0")
+    )
+    transfer_total = sum(
+        (s.total for s in sales if s.payment_method == "TRANSFER"),
+        Decimal("0")
+    )
+    total_sales = sum(
+        (s.total for s in sales),
+        Decimal("0")
+    )
 
     if request.method == "POST":
-        closing_amount = float(request.POST.get("closing_amount"))
+        # convertir a dec
+        closing_amount = Decimal(
+            request.POST.get("closing_amount", "0")
+        ).quantize(Decimal("0.01"))
 
+        # VALIDACIÓN AQUI
+        if closing_amount < 0:
+            messages.error(
+                request,
+                "El monto de cierre no puede ser negativo."
+            )
+            return redirect("cash_register_web:close")
+
+        # cálculos seguros
         cash.cash_total = cash_total
         cash.card_total = card_total
         cash.transfer_total = transfer_total

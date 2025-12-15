@@ -2,16 +2,66 @@
 {% block title %}Corte de caja{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
-  <h2 class="text-xl font-bold mb-4">Caja abierta</h2>
+<div class="max-w-5xl mx-auto space-y-6">
 
-  <p><strong>Abierta por:</strong> {{ cash.opened_by }}</p>
-  <p><strong>Fecha:</strong> {{ cash.opened_at }}</p>
-  <p class="mt-2"><strong>Monto inicial:</strong> ${{ cash.opening_amount }}</p>
+  <!-- Estado -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-bold mb-2">Caja abierta</h2>
+    <p><strong>Abierta por:</strong> {{ cash.opened_by }}</p>
+    <p><strong>Desde:</strong> {{ cash.opened_at }}</p>
+  </div>
+
+  <!-- Resumen -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white p-4 rounded shadow">
+      <p class="text-sm text-gray-500">Total vendido</p>
+      <p class="text-xl font-bold">${{ resumen.total|default:0 }}</p>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <p class="text-sm text-gray-500">Ventas</p>
+      <p class="text-xl font-bold">{{ resumen.cantidad|default:0 }}</p>
+    </div>
+  </div>
+
+  <!-- Por método de pago -->
+ <div class="bg-white p-4 rounded shadow">
+  <h3 class="font-semibold mb-2">Por método de pago</h3>
+  <ul class="text-sm">
+    {% for p in por_pago %}
+      <li>
+        {{ p.label }}:
+        <strong>${{ p.total }}</strong>
+        ({{ p.cantidad }})
+      </li>
+    {% empty %}
+      <li class="text-gray-400">Sin ventas</li>
+    {% endfor %}
+  </ul>
+</div>
+
+
+  <!-- Por vendedor -->
+ <div class="bg-white p-4 rounded shadow">
+  <h3 class="font-semibold mb-2">Ventas por vendedor</h3>
+  <ul class="text-sm">
+    {% for v in por_vendedor %}
+      <li>
+        {{ v.user__username }}:
+        <strong>${{ v.total }}</strong>
+        ({{ v.cantidad }})
+      </li>
+    {% empty %}
+      <li class="text-gray-400">Sin ventas</li>
+    {% endfor %}
+  </ul>
+</div>
+
 
   <a href="{% url 'cash_register_web:close' %}"
-     class="mt-6 inline-block bg-red-600 text-white px-4 py-2 rounded">
+     class="inline-block bg-red-600 text-white px-4 py-2 rounded">
     Cerrar caja
   </a>
+
 </div>
 {% endblock %}
