@@ -26,6 +26,8 @@
 
         {% if request.user|in_group:"AdminPOS" %}
           <a href="{% url 'staff_web:list' %}" class="block py-2 px-3 rounded hover:bg-gray-700">Personal</a>
+        <a href="{% url 'cash_register_web:status' %}" class="block py-2 px-3 rounded hover:bg-gray-700"> Corte de caja </a>
+
         {% endif %}
       </nav>
 

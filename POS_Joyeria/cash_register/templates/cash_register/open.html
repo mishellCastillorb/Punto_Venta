@@ -1,0 +1,19 @@
+{% extends "home/base_pos.html" %}
+{% block title %}Abrir caja{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
+  <h2 class="text-xl font-bold mb-4">Abrir caja</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    <label class="block mb-2 text-sm font-medium">Monto inicial</label>
+    <input type="number" step="0.01" name="opening_amount"
+           class="border p-2 rounded w-full mb-4" required>
+
+    <button class="w-full bg-amber-700 text-white py-2 rounded">
+      Abrir caja
+    </button>
+  </form>
+</div>
+{% endblock %}

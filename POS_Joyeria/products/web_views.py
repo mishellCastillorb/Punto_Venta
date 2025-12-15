@@ -15,9 +15,8 @@ def _is_adminpos(user):
     )
 
 
-# ======================
+
 # CATEGORÍAS
-# ======================
 @role_required(["AdminPOS", "VendedorPOS"])
 def category_list(request):
     categorias = Category.objects.all().order_by("name")
@@ -79,9 +78,7 @@ def category_delete(request, pk):
     return redirect("products_web:categories")
 
 
-# ======================
 # MATERIALES
-# ======================
 @role_required(["AdminPOS", "VendedorPOS"])
 def material_list(request):
     materiales = Material.objects.all().order_by("name")
@@ -143,9 +140,7 @@ def material_delete(request, pk):
     return redirect("products_web:materials")
 
 
-# ======================
 # PRODUCTOS
-# ======================
 @role_required(["AdminPOS", "VendedorPOS"])
 def product_list(request):
     productos = (
