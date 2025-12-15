@@ -1,7 +1,8 @@
 # products/web_views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-
+from django.contrib import messages
+from django.db.models.deletion import ProtectedError
 from .models import Category, Material, Product
 from .forms import CategoryForm, MaterialForm, ProductForm
 from utils.roles import role_required
@@ -69,6 +70,16 @@ def category_edit(request, pk):
         },
     )
 
+@require_POST
+@role_required(["AdminPOS"])
+def delete_product(request, product_id):
+    p = get_object_or_404(Product, id=product_id)
+    try:
+        p.delete()
+        messages.success(request, "Producto eliminado correctamente.")
+    except ProtectedError:
+        messages.error(request, "No se puede eliminar este producto porque ya fue parte de una venta.")
+    return redirect("products_web:list")
 
 @role_required(["AdminPOS"])
 @require_POST

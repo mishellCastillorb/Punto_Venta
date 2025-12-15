@@ -77,6 +77,15 @@
                      class="px-3 py-1 text-sm bg-amber-700 text-white rounded hover:bg-amber-800 whitespace-nowrap inline-block">
                     Editar
                   </a>
+<form method="post"
+      action="{% url 'products_web:delete' p.id %}"
+      onsubmit="return confirm('¿Eliminar este producto?');">
+  {% csrf_token %}
+  <button class="bg-red-600 text-white px-3 py-1 rounded">
+    Eliminar
+  </button>
+</form>
+
                 {% else %}
                   <span class="text-gray-400 text-xs">—</span>
                 {% endif %}

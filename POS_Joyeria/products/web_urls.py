@@ -1,5 +1,6 @@
 from django.urls import path
 from . import web_views
+from .web_views import delete_product
 
 app_name = "products_web"
 
@@ -21,5 +22,5 @@ urlpatterns = [
     path("", web_views.product_list, name="list"),  # /productos/
     path("nuevo/", web_views.product_create, name="product_create"),
     path("<int:pk>/editar/", web_views.product_edit, name="product_edit"),
-
+    path("eliminar/<int:product_id>/", delete_product, name="delete"),
 ]
