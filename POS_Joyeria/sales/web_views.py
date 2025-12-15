@@ -464,7 +464,7 @@ def cobrar_sale(request):
 
     ticket["descuento_pct"] = str(d_pct)
     ticket["metodo_pago"] = metodo_pago
-    ticket["cantidad_pagada"] = cantidad_pagada  # ✅ SIEMPRE
+    ticket["cantidad_pagada"] = cantidad_pagada
 
     request.session[SESSION_KEY] = ticket
     request.session.modified = True
