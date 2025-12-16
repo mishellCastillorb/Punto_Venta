@@ -1,26 +1,35 @@
 from django.db import models
 
-#categorias diponibles para los productos (anillos, pulseras,etc)
+#categorias diponibles para los productos
 class Category(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.name
 
 #materiales de los cuales estan echos los productos
 class Material(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=100)
     purity = models.CharField(max_length=20)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["name", "purity"],
+                name="uniq_material_name_purity"
+            )
+        ]
+
+
     def __str__(self):
-        return self.name
+        return f"{self.name} {self.purity}"
 
 
 class Product(models.Model):
     name = models.CharField(max_length=120)
     category = models.ForeignKey(
         Category,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True
     )
     # Código generado automáticamente- proveedor + 3 letras de categoría + número consecutivo por categoría
@@ -39,12 +48,12 @@ class Product(models.Model):
     stock = models.PositiveIntegerField()
     supplier = models.ForeignKey(
         "suppliers.Supplier",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True
     )
     material = models.ForeignKey(
         Material,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True
     )
     image = models.ImageField(

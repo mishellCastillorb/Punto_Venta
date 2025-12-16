@@ -24,8 +24,9 @@ class CategoryForm(forms.ModelForm):
             raise forms.ValidationError("Debe tener al menos 3 caracteres.")
 
         qs = Category.objects.filter(name__iexact=v)
-        if self.instance.pk:
+        if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
+
         if qs.exists():
             raise forms.ValidationError("Ya existe una categoría con ese nombre.")
 
@@ -47,21 +48,21 @@ class MaterialForm(forms.ModelForm):
             }),
         }
 
-    def clean_name(self):
-        v = (self.cleaned_data.get("name") or "").strip()
+    def clean(self):
+        cleaned = super().clean()
+        name = (cleaned.get("name") or "").strip()
+        purity = (cleaned.get("purity") or "").strip()
 
-        if not v:
-            raise forms.ValidationError("El nombre es obligatorio.")
-        if len(v) < 2:
-            raise forms.ValidationError("Debe tener al menos 2 caracteres.")
+        if not name or not purity:
+            return cleaned
 
-        qs = Material.objects.filter(name__iexact=v)
-        if self.instance.pk:
+        qs = Material.objects.filter(name__iexact=name, purity__iexact=purity)
+        if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise forms.ValidationError("Ya existe un material con ese nombre.")
 
-        return v
+        if qs.exists():
+            self.add_error("purity", "Ya existe ese material con esa pureza.")
+        return cleaned
 
 
 class ProductForm(forms.ModelForm):

@@ -224,3 +224,25 @@ def product_edit(request, pk):
             "is_adminpos": _is_adminpos(request.user),
         },
     )
+
+@require_POST
+@role_required(["AdminPOS"])
+def category_delete(request, pk):
+    obj = get_object_or_404(Category, pk=pk)
+    try:
+        obj.delete()
+        messages.success(request, "Categoría eliminada.")
+    except ProtectedError:
+        messages.error(request, "No puedes eliminar esta categoría porque ya está asociada a productos.")
+    return redirect("products_web:categories")
+
+@require_POST
+@role_required(["AdminPOS"])
+def material_delete(request, pk):
+    obj = get_object_or_404(Material, pk=pk)
+    try:
+        obj.delete()
+        messages.success(request, "Material eliminado.")
+    except ProtectedError:
+        messages.error(request, "No puedes eliminar este material porque ya está asociado a productos.")
+    return redirect("products_web:materials")

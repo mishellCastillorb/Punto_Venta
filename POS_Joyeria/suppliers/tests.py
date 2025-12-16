@@ -4,15 +4,15 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-
 from rest_framework.test import APITestCase
 from rest_framework import status
-
 from .models import Supplier
 from .forms import SupplierForm
 from .serializers import SupplierSerializer
+from decimal import Decimal
+from django.contrib.messages import get_messages
 
-
+User = get_user_model()
 # MODEL TESTS
 
 class SupplierModelTest(TestCase):
@@ -399,3 +399,29 @@ class SupplierWebViewsTestCase(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res["Location"], reverse("suppliers_web:list"))
         self.assertFalse(Supplier.objects.filter(id=self.s1.id).exists())
+
+    class SupplierWebViewsTestCase(TestCase):
+
+        @classmethod
+        def setUpTestData(cls):
+            cls.g_admin, _ = Group.objects.get_or_create(name="AdminPOS")
+
+            cls.admin = User.objects.create_user(
+                username="admin",
+                password="12345678",
+                is_staff=True
+            )
+            cls.admin.groups.add(cls.g_admin)
+
+            cls.supplier = Supplier.objects.create(
+                name="Proveedor Test",
+                code="P001",
+                phone="5551112222",
+                email="prove@test.com"
+            )
+
+            cls.url_list = reverse("suppliers_web:list")
+            cls.url_delete = reverse("suppliers_web:delete", args=[cls.supplier.id])
+
+        def setUp(self):
+            self.client.force_login(self.admin)

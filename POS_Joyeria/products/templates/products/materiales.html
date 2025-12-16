@@ -55,16 +55,25 @@
                     Editar
                   </a>
 
-                  <form method="post"
-                        action="{% url 'products_web:material_delete' m.id %}"
-                        onsubmit="return confirm('¿Seguro que deseas eliminar este material?');"
-                        class="m-0">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="px-3 py-1 text-sm bg-red-600 text-white rounded">
-                      Eliminar
-                    </button>
-                  </form>
+                  {% if m.product_set.count == 0 %}
+  <form method="post"
+        action="{% url 'products_web:material_delete' m.id %}"
+        onsubmit="return confirm('¿Seguro que deseas eliminar este material?');"
+        class="m-0">
+    {% csrf_token %}
+    <button type="submit"
+            class="px-3 py-1 text-sm bg-red-600 text-white rounded">
+      Eliminar
+    </button>
+  </form>
+{% else %}
+  <button type="button"
+          class="px-3 py-1 text-sm bg-gray-400 text-white rounded cursor-not-allowed"
+          title="Este material está asociado a productos">
+    No eliminable
+  </button>
+{% endif %}
+
                 </div>
               {% else %}
                 <span class="text-gray-400 text-xs">—</span>

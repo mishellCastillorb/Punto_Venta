@@ -1,10 +1,13 @@
 # suppliers/web_views.py
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods, require_POST
-
+from django.contrib import messages
 from .models import Supplier
 from .forms import SupplierForm
 from utils.roles import role_required
+from django.db.models.deletion import ProtectedError
+from django.urls import reverse
+from products.models import Product
 
 
 def _role_flags(user):
@@ -78,10 +81,28 @@ def supplier_update(request, pk):
     )
 
 
-# ELIMINAR: SOLO Admin
 @role_required(["AdminPOS"])
 @require_POST
 def supplier_delete(request, pk):
     proveedor = get_object_or_404(Supplier, pk=pk)
     proveedor.delete()
     return redirect("suppliers_web:list")
+
+@require_POST
+@role_required(["AdminPOS"])
+def supplier_delete(request, pk):
+    proveedor = get_object_or_404(Supplier, pk=pk)
+
+    try:
+        proveedor.delete()
+        messages.success(request, "Proveedor eliminado correctamente.")
+    except ProtectedError:
+        usados_en = Product.objects.filter(supplier=proveedor).values_list("name", flat=True)[:5]
+        usados_txt = ", ".join(usados_en) if usados_en else "productos existentes"
+
+        messages.error(
+            request,
+            "No se puede eliminar el proveedor porque ya está asociado a productos"
+        )
+
+    return redirect(reverse("suppliers_web:list"))

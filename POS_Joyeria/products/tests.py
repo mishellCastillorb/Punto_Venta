@@ -1,15 +1,13 @@
 from io import BytesIO
 from PIL import Image
-
+from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-
 from rest_framework.test import APITestCase
 from rest_framework import status
-
 from suppliers.models import Supplier
 from .models import Category, Material, Product
 from .forms import CategoryForm, MaterialForm, ProductForm
@@ -149,26 +147,12 @@ class CategoryFormTest(TestCase):
 
 
 class MaterialFormTest(TestCase):
-    def test_nombre_obligatorio_y_minimo(self):
-        form = MaterialForm(data={"name": " ", "purity": "925"})
-        self.assertFalse(form.is_valid())
-        self.assertIn("name", form.errors)
-
-        form = MaterialForm(data={"name": "A", "purity": "925"})
-        self.assertFalse(form.is_valid())
-        self.assertIn("name", form.errors)
 
     def test_crea_ok(self):
         form = MaterialForm(data={"name": "Plata", "purity": "925"})
         self.assertTrue(form.is_valid(), form.errors)
         obj = form.save()
         self.assertEqual(obj.name, "Plata")
-
-    def test_unicidad_case_insensitive(self):
-        Material.objects.create(name="Plata", purity="925")
-        form = MaterialForm(data={"name": "plata", "purity": "999"})
-        self.assertFalse(form.is_valid())
-        self.assertIn("Ya existe un material con ese nombre.", form.errors["name"][0])
 
     def test_update_excluye_self(self):
         m = Material.objects.create(name="Oro", purity="14k")
@@ -569,3 +553,41 @@ class ProductsWebViewsTest(TestCase):
         }
         res = self.client.post(url, data=payload, follow=False)
         self.assertEqual(res.status_code, 302)
+
+
+def test_category_no_permite_nombre_duplicado_case_insensitive(self):
+    Category.objects.create(name="Anillo")
+    form = CategoryForm(data={"name": "  anillo  "})
+    self.assertFalse(form.is_valid())
+    self.assertIn("Ya existe una categoría con ese nombre.", form.errors["name"][0])
+
+def test_material_permite_mismo_nombre_con_distinta_pureza(self):
+    Material.objects.create(name="Oro", purity="10K")
+    form = MaterialForm(data={"name": "Oro", "purity": "14K"})
+    self.assertTrue(form.is_valid(), form.errors)
+
+def test_material_no_permite_duplicado_name_purity_case_insensitive(self):
+    Material.objects.create(name="Oro", purity="14K")
+    form = MaterialForm(data={"name": "  oro  ", "purity": "  14k  "})
+    self.assertFalse(form.is_valid())
+    self.assertTrue("purity" in form.errors or "name" in form.errors)
+
+def test_supplier_delete_protected_muestra_mensaje(self):
+    self.client.force_login(self.admin)  # el que tenga rol
+    sup = Supplier.objects.create(name="Prov", code="P1", phone="555", email="p@test.com")
+    Product.objects.create(
+        name="X",
+        code="X01",
+        category=self.category,
+        purchase_price=10,
+        sale_price=Decimal("100.00"),
+        weight=1,
+        stock=1,
+        supplier=sup,
+        material=self.material,
+    )
+    res = self.client.post(reverse("suppliers_web:delete", args=[sup.id]))
+    self.assertEqual(res.status_code, 302)
+
+    msgs = [m.message for m in get_messages(res.wsgi_request)]
+    self.assertTrue(any("No se puede eliminar" in m for m in msgs), msgs)
