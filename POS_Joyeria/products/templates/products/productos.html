@@ -75,7 +75,7 @@
                 {% if request.user|in_group:"AdminPOS" %}
                   <a href="{% url 'products_web:product_edit' p.id %}"
                      class="px-3 py-1 text-sm bg-amber-700 text-white rounded hover:bg-amber-800 whitespace-nowrap inline-block">
-                    Editar
+                    Editar Holi
                   </a>
 <form method="post"
       action="{% url 'products_web:delete' p.id %}"
